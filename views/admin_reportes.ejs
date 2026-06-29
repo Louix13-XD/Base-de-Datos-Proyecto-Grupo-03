@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; }
+        .admin-content { margin-left: 250px; padding: 30px; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; border-left: 4px solid transparent; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left-color: #ffc107; }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+    <%- include('admin_sidebar') %>
+
+    <main class="admin-content">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <h2 class="fw-bold mb-0">Reportes y Analítica</h2>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <div class="input-group input-group-sm shadow-sm" style="width: auto;">
+                    <span class="input-group-text bg-white border-0"><i class="bi bi-calendar3"></i></span>
+                    <select class="form-select border-0" id="filter-range">
+                        <option value="all">Todo el tiempo</option>
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30">Últimos 30 días</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
+                </div>
+                
+                <div id="custom-date-container" class="d-none d-flex gap-2">
+                    <input type="date" id="date-start" class="form-control form-control-sm border-0 shadow-sm" style="width: 130px;">
+                    <input type="date" id="date-end" class="form-control form-control-sm border-0 shadow-sm" style="width: 130px;">
+                </div>
+
+
+            </div>
+        </div>
+
+        <!-- Tarjetas de Resumen -->
+        <div class="row g-4 mb-4">
+            <!-- Card 1 -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100">
+                    <h6 class="text-muted fw-bold text-uppercase small mb-3">Ingresos Brutos (Con IGV)</h6>
+                    <h3 class="fw-bold text-dark mb-0" id="report-total-sales">S/ 0.00</h3>
+                    <p class="text-muted small mt-2">Monto total facturado</p>
+                </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100">
+                    <h6 class="text-muted fw-bold text-uppercase small mb-3">Ingresos Netos (Sin IGV)</h6>
+                    <h3 class="fw-bold text-success mb-0" id="report-net-income">S/ 0.00</h3>
+                    <p class="text-muted small mt-2">Ganancia real libre de impuestos</p>
+                </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100">
+                    <h6 class="text-muted fw-bold text-uppercase small mb-3">IGV Acumulado (18%)</h6>
+                    <h3 class="fw-bold text-warning mb-0" id="report-total-igv">S/ 0.00</h3>
+                    <p class="text-muted small mt-2">Impuesto a pagar</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm rounded-4 p-4">
+                    <h5 class="fw-bold mb-4">Crecimiento Mensual de Ingresos</h5>
+                    <div style="height: 400px;">
+                        <canvas id="growthChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                    <h5 class="fw-bold mb-4">Ventas por Categoría</h5>
+                    <div style="height: 350px;">
+                        <canvas id="salesByCatChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let growthChart, salesByCatChart;
+        let allSales = [];
+        let allProducts = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Cargar datos iniciales
+            try {
+                const [resV, resP] = await Promise.all([
+                    fetch('/api/ventas'),
+                    fetch('/api/productos')
+                ]);
+                const [dataV, dataP] = await Promise.all([resV.json(), resP.json()]);
+                
+                if(dataV.success) allSales = dataV.ventas;
+                if(dataP.success) allProducts = dataP.products;
+
+                updateDashboard();
+            } catch(e) { console.error("Error al cargar datos", e); }
+
+            // Event Listeners para Filtros
+            document.getElementById('filter-range').addEventListener('change', function() {
+                const customDates = document.getElementById('custom-date-container');
+                if(this.value === 'custom') {
+                    customDates.classList.remove('d-none');
+                } else {
+                    customDates.classList.add('d-none');
+                    updateDashboard();
+                }
+            });
+
+            document.getElementById('date-start').addEventListener('change', updateDashboard);
+            document.getElementById('date-end').addEventListener('change', updateDashboard);
+        });
+
+        function updateDashboard() {
+            const range = document.getElementById('filter-range').value;
+            let filteredSales = [...allSales];
+
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            if (range === '7') {
+                const sevenDaysAgo = new Date(startOfToday);
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                filteredSales = allSales.filter(s => new Date(s.fecha_compra) >= sevenDaysAgo);
+            } else if (range === '30') {
+                const thirtyDaysAgo = new Date(startOfToday);
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                filteredSales = allSales.filter(s => new Date(s.fecha_compra) >= thirtyDaysAgo);
+            } else if (range === 'custom') {
+                const start = document.getElementById('date-start').value;
+                const end = document.getElementById('date-end').value;
+                if(start && end) {
+                    const startDate = new Date(start);
+                    const endDate = new Date(end);
+                    endDate.setHours(23, 59, 59); // Fin del día
+                    filteredSales = allSales.filter(s => {
+                        const d = new Date(s.fecha_compra);
+                        return d >= startDate && d <= endDate;
+                    });
+                } else {
+                    return; // Esperar a que el usuario elija ambas fechas
+                }
+            }
+
+            // 1. Métricas
+            const gross = filteredSales.reduce((acc, s) => acc + parseFloat(s.total_venta || 0), 0);
+            const net = gross / 1.18;
+            const totalIgv = gross - net;
+
+            document.getElementById('report-total-sales').innerText = `S/ ${gross.toFixed(2)}`;
+            document.getElementById('report-net-income').innerText = `S/ ${net.toFixed(2)}`;
+            document.getElementById('report-total-igv').innerText = `S/ ${totalIgv.toFixed(2)}`;
+
+            // 2. Gráfico de Crecimiento
+            renderGrowthChart(filteredSales);
+
+            // 3. Gráfico de Ventas por Categoría (Requiere detalles)
+            renderSalesByCatChart(filteredSales);
+        }
+
+        function renderGrowthChart(salesData) {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            if(growthChart) growthChart.destroy();
+
+            const range = document.getElementById('filter-range').value;
+            let labels = [];
+            let data = [];
+
+            if (range === '7' || range === '30' || (range === 'custom' && salesData.length > 0)) {
+                // Lógica para etiquetas diarias (7 o 30 días)
+                const daysToGen = range === '7' ? 7 : (range === '30' ? 30 : 0);
+                
+                if (daysToGen > 0) {
+                    for (let i = daysToGen - 1; i >= 0; i--) {
+                        const d = new Date();
+                        d.setDate(d.getDate() - i);
+                        const label = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                        labels.push(label);
+                        
+                        const dayTotal = salesData
+                            .filter(s => new Date(s.fecha_compra).toLocaleDateString() === d.toLocaleDateString())
+                            .reduce((acc, s) => acc + parseFloat(s.total_venta), 0);
+                        data.push(dayTotal);
+                    }
+                } else {
+                    // Si es custom pero el rango es pequeño, mostrar días, si no meses
+                    // Por ahora mantenemos mensual para custom largo o "all"
+                    labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                    data = new Array(12).fill(0);
+                    salesData.forEach(s => {
+                        const month = new Date(s.fecha_compra).getMonth();
+                        data[month] += parseFloat(s.total_venta);
+                    });
+                }
+            } else {
+                // Todo el tiempo o sin datos específicos
+                labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                data = new Array(12).fill(0);
+                salesData.forEach(s => {
+                    const month = new Date(s.fecha_compra).getMonth();
+                    data[month] += parseFloat(s.total_venta);
+                });
+            }
+
+            growthChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ingresos',
+                        data: data,
+                        backgroundColor: '#ffc107',
+                        borderRadius: 8,
+                        barThickness: range === '30' ? 10 : 'flex'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (c) => `S/ ${c.raw.toFixed(2)}` } }
+                    },
+                    scales: { 
+                        y: { beginAtZero: true, grid: { drawBorder: false, color: '#eee' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        async function renderSalesByCatChart(salesData) {
+            const ctx = document.getElementById('salesByCatChart').getContext('2d');
+            if(salesByCatChart) salesByCatChart.destroy();
+
+            const range = document.getElementById('filter-range').value;
+            let url = '/api/stats/sales-by-category';
+            
+            if (range !== 'all') {
+                const now = new Date();
+                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                let startDate, endDate;
+
+                if (range === '7') {
+                    startDate = new Date(startOfToday);
+                    startDate.setDate(startDate.getDate() - 7);
+                    endDate = now;
+                } else if (range === '30') {
+                    startDate = new Date(startOfToday);
+                    startDate.setDate(startDate.getDate() - 30);
+                    endDate = now;
+                } else if (range === 'custom') {
+                    const startStr = document.getElementById('date-start').value;
+                    const endStr = document.getElementById('date-end').value;
+                    if (startStr && endStr) {
+                        startDate = new Date(startStr);
+                        endDate = new Date(endStr);
+                        endDate.setHours(23, 59, 59);
+                    }
+                }
+
+                if (startDate && endDate) {
+                    url += `?start=${startDate.toISOString()}&end=${endDate.toISOString()}`;
+                }
+            }
+            
+            try {
+                console.log("Cargando estadísticas de categorías desde:", url);
+                const res = await fetch(url);
+                const data = await res.json();
+                console.log("Datos recibidos para el gráfico:", data);
+                
+                if(data.success && data.stats) {
+                    const stats = data.stats;
+                    const labels = stats.map(s => s.categoria);
+                    const values = stats.map(s => parseFloat(s.total));
+                    const totalSum = values.reduce((a, b) => a + b, 0);
+
+                    console.log("Labels:", labels, "Values:", values);
+
+                    salesByCatChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: totalSum > 0 ? labels : ['Sin Datos'],
+                            datasets: [{
+                                data: totalSum > 0 ? values : [1],
+                                backgroundColor: ['#ffc107', '#212529', '#0d6efd', '#198754', '#dc3545', '#6c757d'],
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            cutout: '65%',
+                            plugins: { 
+                                legend: { 
+                                    position: 'bottom', 
+                                    labels: { 
+                                        boxWidth: 12, 
+                                        font: { size: 11, family: "'Inter', sans-serif" },
+                                        padding: 20
+                                    } 
+                                },
+                                tooltip: { 
+                                    callbacks: { 
+                                        label: (c) => ` ${c.label}: S/ ${parseFloat(c.raw).toFixed(2)}` 
+                                    } 
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    console.warn("La API no devolvió éxito o stats:", data);
+                }
+            } catch(e) { 
+                console.error("Error crítico al renderizar gráfico de categorías:", e); 
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

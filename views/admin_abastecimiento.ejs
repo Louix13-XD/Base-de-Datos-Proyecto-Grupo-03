@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; }
+        .admin-content { margin-left: 250px; padding: 30px; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; border-left: 4px solid transparent; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left-color: #ffc107; }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+    <%- include('admin_sidebar') %>
+
+    <main class="admin-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold">Abastecimiento y Reposición</h2>
+                <p class="text-muted">Gestión de compras a proveedores y reposición de stock en tienda.</p>
+            </div>
+            <button class="btn btn-warning fw-bold px-4 py-2 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaCompra">
+                <i class="bi bi-plus-circle me-2"></i>Registrar Compra
+            </button>
+        </div>
+
+        <!-- Tabla de Facturas de Abastecimiento -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="p-4 bg-white border-bottom">
+                <h5 class="fw-bold mb-0">Historial de Compras de Mercadería</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">ID Compra</th>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th>Factura / Recibo</th>
+                            <th>Registrado Por</th>
+                            <th>Monto Total</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compras-table-body">
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando historial de compras...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Registrar Nueva Compra -->
+    <div class="modal fade" id="modalNuevaCompra" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white py-3">
+                    <h5 class="modal-title fw-bold">Registrar Compra a Proveedor</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formNuevaCompra">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Proveedor</label>
+                                <select class="form-select" id="compra-proveedor" required>
+                                    <option value="">Seleccione un proveedor...</option>
+                                    <!-- Carga dinámica -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Número de Factura / Recibo</label>
+                                <input type="text" class="form-control" id="compra-factura" placeholder="Ej: FAC-002349" required>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold border-bottom pb-2 mb-3">Productos en el Recibo</h6>
+                        <div class="table-responsive mb-3">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr class="small text-uppercase text-muted">
+                                        <th style="width: 50%;">Producto</th>
+                                        <th style="width: 20%;">Cantidad</th>
+                                        <th style="width: 20%;">Costo Neto Unitario (S/)</th>
+                                        <th style="width: 10%;" class="text-end">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="compra-detalles-body">
+                                    <!-- Filas dinámicas añadidas con JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                            <button type="button" class="btn btn-outline-dark fw-bold btn-sm" onclick="agregarFilaProducto()">
+                                <i class="bi bi-plus-lg me-2"></i>Agregar Fila
+                            </button>
+                            <div class="text-end">
+                                <span class="text-muted d-block small">Monto Total Estimado</span>
+                                <h4 class="fw-bold mb-0 text-dark">S/ <span id="compra-total-display">0.00</span></h4>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm">REGISTRAR COMPRA E INCREMENTAR STOCK</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ver Detalle Compra -->
+    <div class="modal fade" id="modalVerDetalle" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Detalle del Abastecimiento</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <span class="text-muted small d-block">Proveedor</span>
+                        <strong id="detalle-proveedor" class="fs-5 text-dark"></strong>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <span class="text-muted small d-block">Factura / Recibo</span>
+                            <strong id="detalle-factura" class="text-dark"></strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted small d-block">Fecha de Compra</span>
+                            <strong id="detalle-fecha" class="text-dark"></strong>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold border-bottom pb-2 mb-3">Productos Comprados</h6>
+                    <ul class="list-group list-group-flush mb-4" id="detalle-productos-list">
+                        <!-- Carga dinámica -->
+                    </ul>
+
+                    <div class="bg-light p-3 rounded-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-secondary">Monto Total Invertido</span>
+                        <h4 class="fw-bold text-dark mb-0">S/ <span id="detalle-total">0.00</span></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let proveedoresGlobal = [];
+        let productosGlobal = [];
+        let comprasGlobal = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.role === 'Cliente' || currentUser.role === 'client') {
+                window.location.href = '/login';
+                return;
+            }
+
+            await cargarProveedores();
+            await cargarProductosCatalog();
+            await cargarCompras();
+        });
+
+        async function cargarProveedores() {
+            try {
+                const res = await fetch('/api/proveedores');
+                const data = await res.json();
+                if (data.success) {
+                    proveedoresGlobal = data.proveedores;
+                    const select = document.getElementById('compra-proveedor');
+                    select.innerHTML = '<option value="">Seleccione un proveedor...</option>' + 
+                        proveedoresGlobal.map(p => `<option value="${p.id}">${p.razon_social} (RUC: ${p.num_ruc})</option>`).join('');
+                }
+            } catch (err) { console.error('Error al obtener proveedores', err); }
+        }
+
+        async function cargarProductosCatalog() {
+            try {
+                const res = await fetch('/api/productos');
+                const data = await res.json();
+                if (data.success) {
+                    productosGlobal = data.products;
+                }
+            } catch (err) { console.error('Error al obtener productos', err); }
+        }
+
+        async function cargarCompras() {
+            const tbody = document.getElementById('compras-table-body');
+            try {
+                const res = await fetch('/api/abastecimiento');
+                const data = await res.json();
+                if (data.success) {
+                    comprasGlobal = data.compras;
+                    tbody.innerHTML = '';
+                    if (comprasGlobal.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No se han registrado compras de abastecimiento aún.</td></tr>';
+                        return;
+                    }
+                    comprasGlobal.forEach(c => {
+                        const fecha = new Date(c.fecha_compra).toLocaleDateString('es-PE');
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="ps-4 fw-bold">#${c.id}</td>
+                                <td>${fecha}</td>
+                                <td class="fw-bold text-dark">${c.proveedor_nombre}</td>
+                                <td><code>${c.num_factura || 'S/N'}</code></td>
+                                <td class="text-muted small">${c.usuario_nombre || 'Sistema'}</td>
+                                <td class="fw-bold text-dark">S/ ${parseFloat(c.monto_total).toFixed(2)}</td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-dark" onclick="verDetalleCompra(${c.id})" title="Ver detalles">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-danger">Error de comunicación con el servidor.</td></tr>';
+            }
+        }
+
+        function agregarFilaProducto() {
+            const tbody = document.getElementById('compra-detalles-body');
+            const rowId = 'row-' + Date.now();
+
+            const optionsHTML = productosGlobal.map(p => `<option value="${p.id}">${p.nombre} (${p.marca})</option>`).join('');
+
+            const tr = document.createElement('tr');
+            tr.id = rowId;
+            tr.innerHTML = `
+                <td>
+                    <select class="form-select select-producto" required onchange="actualizarPrecioSugerido('${rowId}')">
+                        <option value="">Seleccione un producto...</option>
+                        ${optionsHTML}
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control input-cantidad" min="1" value="10" required oninput="calcularTotalRecibo()">
+                </td>
+                <td>
+                    <input type="number" class="form-control input-costo" step="0.01" min="0.01" placeholder="0.00" required oninput="calcularTotalRecibo()">
+                </td>
+                <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarFila('${rowId}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            calcularTotalRecibo();
+        }
+
+        function actualizarPrecioSugerido(rowId) {
+            const tr = document.getElementById(rowId);
+            const select = tr.querySelector('.select-producto');
+            const costInput = tr.querySelector('.input-costo');
+            
+            const prod = productosGlobal.find(p => p.id == select.value);
+            if (prod) {
+                // Sugerir costo de compra neto (ej: precio de venta / 1.5 o similar)
+                const sugeridoNeto = parseFloat(prod.precio_base) * 0.7; // 30% margen de ganancia de compra
+                costInput.value = sugeridoNeto.toFixed(2);
+            }
+            calcularTotalRecibo();
+        }
+
+        function eliminarFila(rowId) {
+            document.getElementById(rowId).remove();
+            calcularTotalRecibo();
+        }
+
+        function calcularTotalRecibo() {
+            let total = 0;
+            document.querySelectorAll('#compra-detalles-body tr').forEach(tr => {
+                const qty = parseInt(tr.querySelector('.input-cantidad').value) || 0;
+                const cost = parseFloat(tr.querySelector('.input-costo').value) || 0;
+                total += qty * cost;
+            });
+            document.getElementById('compra-total-display').innerText = total.toFixed(2);
+        }
+
+        async function verDetalleCompra(id) {
+            try {
+                const res = await fetch(`/api/abastecimiento/detalle/${id}`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('detalle-proveedor').innerText = data.compra.proveedor_nombre;
+                    document.getElementById('detalle-factura').innerText = data.compra.num_factura || 'Sin Factura';
+                    document.getElementById('detalle-fecha').innerText = new Date(data.compra.fecha_compra).toLocaleString('es-PE', { hour12: false });
+                    document.getElementById('detalle-total').innerText = parseFloat(data.compra.monto_total).toFixed(2);
+
+                    const list = document.getElementById('detalle-productos-list');
+                    list.innerHTML = data.detalles.map(d => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                            <div>
+                                <span class="fw-bold d-block text-dark">${d.nombre_producto}</span>
+                                <small class="text-muted">${d.cantidad} unidades x S/ ${parseFloat(d.precio_compra_neto).toFixed(2)} c/u</small>
+                            </div>
+                            <span class="badge bg-secondary rounded-pill font-monospace">S/ ${(d.cantidad * parseFloat(d.precio_compra_neto)).toFixed(2)}</span>
+                        </li>
+                    `).join('');
+
+                    const modal = new bootstrap.Modal(document.getElementById('modalVerDetalle'));
+                    modal.show();
+                }
+            } catch (err) { console.error('Error al ver detalles', err); }
+        }
+
+        document.getElementById('formNuevaCompra').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const tbody = document.getElementById('compra-detalles-body');
+
+            if (tbody.querySelectorAll('tr').length === 0) {
+                Swal.fire('Atención', 'Debe agregar al menos un producto a la compra.', 'warning');
+                return;
+            }
+
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+
+            const detalles = [];
+            tbody.querySelectorAll('tr').forEach(tr => {
+                detalles.push({
+                    id_producto: parseInt(tr.querySelector('.select-producto').value),
+                    cantidad: parseInt(tr.querySelector('.input-cantidad').value),
+                    precio_compra_neto: parseFloat(tr.querySelector('.input-costo').value)
+                });
+            });
+
+            const payload = {
+                id_proveedor: parseInt(document.getElementById('compra-proveedor').value),
+                num_factura: document.getElementById('compra-factura').value.trim(),
+                monto_total: parseFloat(document.getElementById('compra-total-display').innerText),
+                id_usuario: currentUser.id,
+                detalles: detalles
+            };
+
+            try {
+                const res = await fetch('/api/abastecimiento', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalNuevaCompra')).hide();
+                    this.reset();
+                    tbody.innerHTML = '';
+                    document.getElementById('compra-total-display').innerText = '0.00';
+                    
+                    Swal.fire({
+                        title: '¡Compra Registrada!',
+                        text: 'El stock de los productos ha sido incrementado correctamente en la tienda.',
+                        icon: 'success'
+                    });
+                    
+                    cargarCompras();
+                    cargarProductosCatalog(); // Recargar productos para actualizar los precios sugeridos en futuras compras
+                } else {
+                    Swal.fire('Error', 'No se pudo guardar la compra: ' + data.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Error de red al registrar la compra', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; }
+        .admin-content { margin-left: 250px; padding: 30px; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; border-left: 4px solid transparent; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left-color: #ffc107; }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+    <%- include('admin_sidebar') %>
+
+    <main class="admin-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold">Gestión de Proveedores</h2>
+                <p class="text-muted">Registro y administración de los proveedores autorizados para reposiciones.</p>
+            </div>
+            <button class="btn btn-warning fw-bold px-4 py-2 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoProveedor">
+                <i class="bi bi-plus-circle me-2"></i>Nuevo Proveedor
+            </button>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="p-4 bg-white border-bottom">
+                <h5 class="fw-bold mb-0">Listado de Proveedores Registrados</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">Razón Social</th>
+                            <th>RUC</th>
+                            <th>Contacto</th>
+                            <th>Teléfono</th>
+                            <th>Correo Electrónico</th>
+                            <th>Dirección</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proveedores-table-body">
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando proveedores...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Registrar Nuevo Proveedor -->
+    <div class="modal fade" id="modalNuevoProveedor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white py-3">
+                    <h5 class="modal-title fw-bold">Registrar Nuevo Proveedor</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formNuevoProveedor">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Razón Social</label>
+                            <input type="text" class="form-control" id="prov-razon" placeholder="Ej: Aceros Arequipa S.A." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Número de RUC</label>
+                            <input type="text" class="form-control" id="prov-ruc" placeholder="11 dígitos" required maxlength="11" pattern="[0-9]{11}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Nombre de Contacto</label>
+                            <input type="text" class="form-control" id="prov-contacto" placeholder="Ej: Ing. Manuel Cáceres">
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Teléfono</label>
+                                <input type="tel" class="form-control" id="prov-telefono" placeholder="987654321" maxlength="9" pattern="[0-9]{9}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="prov-correo" placeholder="proveedor@empresa.com">
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small">Dirección</label>
+                            <input type="text" class="form-control" id="prov-direccion" placeholder="Av. Industrial 123, Trujillo">
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm">GUARDAR PROVEEDOR</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Proveedor -->
+    <div class="modal fade" id="modalEditarProveedor" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white py-3">
+                    <h5 class="modal-title fw-bold">Editar Proveedor</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formEditarProveedor">
+                        <input type="hidden" id="edit-prov-id">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Razón Social</label>
+                            <input type="text" class="form-control" id="edit-prov-razon" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Número de RUC</label>
+                            <input type="text" class="form-control" id="edit-prov-ruc" required maxlength="11" pattern="[0-9]{11}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Nombre de Contacto</label>
+                            <input type="text" class="form-control" id="edit-prov-contacto">
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Teléfono</label>
+                                <input type="tel" class="form-control" id="edit-prov-telefono" maxlength="9" pattern="[0-9]{9}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="edit-prov-correo">
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small">Dirección</label>
+                            <input type="text" class="form-control" id="edit-prov-direccion">
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm">GUARDAR CAMBIOS</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let proveedoresGlobal = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.role === 'Cliente' || currentUser.role === 'client') {
+                window.location.href = '/login';
+                return;
+            }
+            cargarProveedores();
+        });
+
+        async function cargarProveedores() {
+            const tbody = document.getElementById('proveedores-table-body');
+            try {
+                const res = await fetch('/api/proveedores');
+                const data = await res.json();
+                if (data.success) {
+                    proveedoresGlobal = data.proveedores;
+                    tbody.innerHTML = '';
+                    if (proveedoresGlobal.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">No hay proveedores registrados aún.</td></tr>';
+                        return;
+                    }
+                    proveedoresGlobal.forEach(p => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="ps-4 fw-bold text-dark">${p.razon_social}</td>
+                                <td><code>${p.num_ruc}</code></td>
+                                <td>${p.nombre_contacto || '---'}</td>
+                                <td>${p.num_telefono || '---'}</td>
+                                <td class="text-muted small">${p.correo || '---'}</td>
+                                <td class="text-muted small">${p.direccion || '---'}</td>
+                                <td class="text-end pe-4">
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalEditar(${p.id})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarProveedor(${p.id})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-danger">Error de conexión con el servidor.</td></tr>';
+            }
+        }
+
+        document.getElementById('formNuevoProveedor').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+
+            const payload = {
+                razon_social: document.getElementById('prov-razon').value.trim(),
+                num_ruc: document.getElementById('prov-ruc').value.trim(),
+                nombre_contacto: document.getElementById('prov-contacto').value.trim(),
+                num_telefono: document.getElementById('prov-telefono').value.trim(),
+                correo: document.getElementById('prov-correo').value.trim(),
+                direccion: document.getElementById('prov-direccion').value.trim()
+            };
+
+            try {
+                const res = await fetch('/api/proveedores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalNuevoProveedor')).hide();
+                    this.reset();
+                    Swal.fire('¡Éxito!', 'Proveedor registrado con éxito.', 'success');
+                    cargarProveedores();
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Error de red al guardar el proveedor.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        function abrirModalEditar(id) {
+            const p = proveedoresGlobal.find(x => x.id == id);
+            if (!p) return;
+
+            document.getElementById('edit-prov-id').value = p.id;
+            document.getElementById('edit-prov-razon').value = p.razon_social;
+            document.getElementById('edit-prov-ruc').value = p.num_ruc;
+            document.getElementById('edit-prov-contacto').value = p.nombre_contacto || '';
+            document.getElementById('edit-prov-telefono').value = p.num_telefono || '';
+            document.getElementById('edit-prov-correo').value = p.correo || '';
+            document.getElementById('edit-prov-direccion').value = p.direccion || '';
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarProveedor'));
+            modal.show();
+        }
+
+        document.getElementById('formEditarProveedor').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-prov-id').value;
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+
+            const payload = {
+                razon_social: document.getElementById('edit-prov-razon').value.trim(),
+                num_ruc: document.getElementById('edit-prov-ruc').value.trim(),
+                nombre_contacto: document.getElementById('edit-prov-contacto').value.trim(),
+                num_telefono: document.getElementById('edit-prov-telefono').value.trim(),
+                correo: document.getElementById('edit-prov-correo').value.trim(),
+                direccion: document.getElementById('edit-prov-direccion').value.trim()
+            };
+
+            try {
+                const res = await fetch(`/api/proveedores/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarProveedor')).hide();
+                    Swal.fire('¡Actualizado!', 'Los datos del proveedor han sido modificados.', 'success');
+                    cargarProveedores();
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Error de red al actualizar el proveedor.', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        async function eliminarProveedor(id) {
+            const result = await Swal.fire({
+                title: '¿Eliminar proveedor?',
+                text: '¿Estás seguro de que deseas retirar este proveedor de la lista? Esta acción no se puede deshacer.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(`/api/proveedores/${id}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (data.success) {
+                        Swal.fire('¡Eliminado!', 'El proveedor ha sido retirado con éxito.', 'success');
+                        cargarProveedores();
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                } catch (err) {
+                    Swal.fire('Error', 'Error de red al eliminar el proveedor.', 'error');
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

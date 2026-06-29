@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; transition: all 0.3s; z-index: 1000; }
+        .admin-content { margin-left: 250px; padding: 30px; transition: all 0.3s; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; transition: all 0.2s; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left: 4px solid #ffc107; }
+        .stat-card { border: none; border-radius: 20px; transition: transform 0.3s; height: 100%; }
+        .stat-card:hover { transform: translateY(-5px); }
+        @media (max-width: 768px) { .admin-sidebar { margin-left: -250px; } .admin-content { margin-left: 0; } }
+        .extra-small { font-size: 0.75rem; }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+    <%- include('admin_sidebar') %>
+
+    <main class="admin-content">
+        <header class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h2 class="fw-bold">Resumen General</h2>
+                <p class="text-muted mb-0">Control en tiempo real de ingresos e inventario.</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <!-- Botón de fecha removido a petición del usuario -->
+                <img src="https://ui-avatars.com/api/?name=Admin&background=ffc107&color=212529" class="rounded-circle shadow-sm" width="45">
+            </div>
+        </header>
+
+        <!-- Métricas Principales -->
+        <div class="row row-cols-1 row-cols-md-5 g-4 mb-5">
+            <!-- Ventas Hoy -->
+            <div class="col">
+                <div class="card stat-card shadow-sm p-3 border-0 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-warning bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-currency-dollar text-warning fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted extra-small fw-bold text-uppercase mb-1">Ventas Hoy</p>
+                    <h4 class="fw-bold mb-0" id="stat-sales-today">S/ 0.00</h4>
+                </div>
+            </div>
+
+            <!-- Ganancia Neta -->
+            <div class="col">
+                <div class="card stat-card shadow-sm p-3 border-0 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-success bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-cash-stack text-success fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted extra-small fw-bold text-uppercase mb-1">Ganancia Neta</p>
+                    <h4 class="fw-bold mb-0 text-success" id="dash-net-profit">S/ 0.00</h4>
+                    <small class="text-muted extra-small d-block">Bruto: <span id="dash-gross-profit">S/ 0.00</span></small>
+                </div>
+            </div>
+
+            <!-- Total Pedidos -->
+            <div class="col">
+                <div class="card stat-card shadow-sm p-3 border-0 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-cart-check text-primary fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted extra-small fw-bold text-uppercase mb-1">Total Pedidos</p>
+                    <h4 class="fw-bold mb-0" id="stat-orders-total">0</h4>
+                </div>
+            </div>
+
+            <!-- Stock Crítico -->
+            <div class="col">
+                <div class="card stat-card shadow-sm p-3 border-0 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-danger bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-exclamation-triangle text-danger fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted extra-small fw-bold text-uppercase mb-1">Stock Bajo</p>
+                    <h4 class="fw-bold mb-0 text-danger" id="stat-critical-stock">0</h4>
+                </div>
+            </div>
+
+            <!-- Total Productos -->
+            <div class="col">
+                <div class="card stat-card shadow-sm p-3 border-0 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="bg-dark bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-boxes text-dark fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted extra-small fw-bold text-uppercase mb-1">Productos</p>
+                    <h4 class="fw-bold mb-0" id="stat-total-products">0</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimas Ventas -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
+            <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Ventas Recientes</h5>
+                <a href="/admin/ventas" class="btn btn-outline-warning btn-sm fw-bold">Ver Todo</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">Código</th>
+                            <th>Cliente</th>
+                            <th>Monto</th>
+                            <th class="text-end pe-4">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dash-sales-body">
+                        <!-- Ventas dinámicas -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.role === 'Cliente' || currentUser.role === 'client') {
+                window.location.href = '/login';
+                return;
+            }
+
+            let sales = [];
+            let products = [];
+            
+            try {
+                const resS = await fetch('/api/ventas');
+                const dataS = await resS.json();
+                if(dataS.success) sales = dataS.ventas;
+
+                const resP = await fetch('/api/productos');
+                const dataP = await resP.json();
+                if(dataP.success) products = dataP.products;
+            } catch(e) { console.error("Error conectando a BD:", e); }
+            
+            // Filtrar solo las ventas de HOY
+            const today = new Date().toLocaleDateString();
+            const salesToday = sales.filter(s => new Date(s.fecha_compra).toLocaleDateString() === today);
+            
+            const grossToday = salesToday.reduce((acc, s) => acc + parseFloat(s.total_venta || 0), 0);
+            const netToday = grossToday / 1.18;
+
+            document.getElementById('stat-sales-today').innerText = `S/ ${grossToday.toFixed(2)}`;
+            document.getElementById('dash-gross-profit').innerText = `S/ ${grossToday.toFixed(2)}`;
+            document.getElementById('dash-net-profit').innerText = `S/ ${netToday.toFixed(2)}`;
+            document.getElementById('stat-orders-total').innerText = sales.length;
+            
+            const lowStock = products.filter(p => p.stock < 5).length;
+            document.getElementById('stat-critical-stock').innerText = lowStock;
+            document.getElementById('stat-total-products').innerText = products.length;
+
+            const tbody = document.getElementById('dash-sales-body');
+            if(sales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">No hay ventas registradas.</td></tr>';
+            } else {
+                sales.slice(0, 5).forEach(sale => {
+                    const custName = sale.cliente_nombre || 'Desconocido';
+                    const code = sale.codigo_boleta || 'ORD-000';
+                    const total = parseFloat(sale.total_venta || 0);
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="ps-4 fw-bold">#${code.replace('ORD-', '')}</td>
+                            <td>${custName}</td>
+                            <td><span class="fw-bold">S/ ${total.toFixed(2)}</span></td>
+                            <td class="text-end pe-4">
+                                <a href="/boleta/${code.replace('ORD-', '')}" class="btn btn-light btn-sm"><i class="bi bi-eye"></i></a>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Blindar inicialización de gráficos
+            const salesCanvas = document.getElementById('salesChart');
+            if (salesCanvas) {
+                const ctxSales = salesCanvas.getContext('2d');
+                const last7DaysLabels = [];
+                const last7DaysData = new Array(7).fill(0);
+                const daysNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    last7DaysLabels.push(daysNames[d.getDay()]);
+                    const daySales = sales.filter(s => new Date(s.fecha_compra).toLocaleDateString() === d.toLocaleDateString());
+                    last7DaysData[6 - i] = daySales.reduce((acc, s) => acc + parseFloat(s.total_venta || 0), 0);
+                }
+
+                new Chart(ctxSales, {
+                    type: 'line',
+                    data: {
+                        labels: last7DaysLabels,
+                        datasets: [{
+                            label: 'Ventas (S/) ',
+                            data: last7DaysData,
+                            borderColor: '#ffc107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            fill: true, tension: 0.4, borderWidth: 3, pointRadius: 4
+                        }]
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            const invCanvas = document.getElementById('inventoryChart');
+            if (invCanvas) {
+                const cats = {};
+                products.forEach(p => {
+                    const catName = p.category_name || 'Sin Categoría';
+                    cats[catName] = (cats[catName] || 0) + p.stock;
+                });
+                const ctxInv = invCanvas.getContext('2d');
+                new Chart(ctxInv, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(cats).length > 0 ? Object.keys(cats) : ['Sin Stock'],
+                        datasets: [{
+                            data: Object.keys(cats).length > 0 ? Object.values(cats) : [1],
+                            backgroundColor: ['#ffc107', '#212529', '#0d6efd', '#198754', '#dc3545', '#6c757d'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

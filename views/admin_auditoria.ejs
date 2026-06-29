@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; }
+        .admin-content { margin-left: 250px; padding: 30px; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; border-left: 4px solid transparent; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left-color: #ffc107; }
+        .badge-action { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 5px 10px; border-radius: 5px; }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+    <%- include('admin_sidebar') %>
+
+    <main class="admin-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold">Bitácora de Auditoría</h2>
+                <p class="text-muted">Registro detallado de acciones realizadas por el personal interno y administradores.</p>
+            </div>
+            <button class="btn btn-outline-secondary fw-bold rounded-3 shadow-sm" onclick="cargarAuditoria()">
+                <i class="bi bi-arrow-clockwise me-2"></i>Actualizar
+            </button>
+        </div>
+
+        <!-- Filtros de búsqueda -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Buscar por Empleado o Acción</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control bg-light border-start-0" id="search-input" placeholder="Ej: admin, CREAR_PRODUCTO..." oninput="filtrarAuditoria()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Filtrar por Acción</label>
+                    <select class="form-select bg-light" id="action-filter" onchange="filtrarAuditoria()">
+                        <option value="">Todas las acciones</option>
+                        <option value="CREAR_PRODUCTO">Crear Producto</option>
+                        <option value="MODIFICAR_PRODUCTO">Modificar Producto</option>
+                        <option value="ELIMINAR_PRODUCTO">Eliminar Producto</option>
+                        <option value="CREAR_USUARIO">Crear Usuario/Trabajador</option>
+                        <option value="MODIFICAR_USUARIO">Modificar Usuario</option>
+                        <option value="ELIMINAR_USUARIO">Eliminar Usuario</option>
+                        <option value="ANULAR_VENTA">Anular Venta</option>
+                        <option value="REGISTRAR_MERMA">Registrar Merma</option>
+                        <option value="REGISTRAR_COMPRA">Registrar Compra (Abastecimiento)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Filtrar por Tabla Afectada</label>
+                    <select class="form-select bg-light" id="table-filter" onchange="filtrarAuditoria()">
+                        <option value="">Todas las tablas</option>
+                        <option value="PRODUCTOS">Productos</option>
+                        <option value="USUARIOS">Usuarios</option>
+                        <option value="VENTAS">Ventas</option>
+                        <option value="PROVEEDORES">Proveedores</option>
+                        <option value="COMPRAS_PROVEEDOR">Compras Proveedor</option>
+                        <option value="MERMAS">Mermas</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de bitácora -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">Fecha y Hora</th>
+                            <th>Usuario / Responsable</th>
+                            <th>Acción Realizada</th>
+                            <th>Tabla Afectada</th>
+                            <th>ID Registro</th>
+                            <th class="pe-4">Detalles / Especificaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditoria-table-body">
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Cargando bitácora de auditoría...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Detalle de Auditoría -->
+    <div class="modal fade" id="modalDetalleAuditoria" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white py-3">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-info-circle me-2 text-warning"></i>Detalle de Operación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3 border-bottom pb-2">
+                        <span class="text-muted small d-block">Fecha y Hora</span>
+                        <strong id="modal-audit-fecha" class="text-dark"></strong>
+                    </div>
+                    <div class="mb-3 border-bottom pb-2">
+                        <span class="text-muted small d-block">Usuario / Responsable</span>
+                        <strong id="modal-audit-usuario" class="text-dark"></strong>
+                    </div>
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-6">
+                            <span class="text-muted small d-block">Acción Realizada</span>
+                            <span id="modal-audit-accion" class="badge badge-action"></span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted small d-block">Tabla / Registro</span>
+                            <span class="text-dark font-monospace fw-bold"><span id="modal-audit-tabla"></span> <code id="modal-audit-registro"></code></span>
+                        </div>
+                    </div>
+                    <div class="bg-light p-3 rounded-3">
+                        <span class="text-muted small d-block fw-bold mb-1">Especificación de los Cambios:</span>
+                        <p id="modal-audit-detalles" class="mb-0 text-dark small" style="white-space: pre-wrap; font-style: italic;"></p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-dark w-100 fw-bold py-2 rounded-3" data-bs-dismiss="modal">CERRAR DETALLE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let logsCompletos = [];
+
+        async function cargarAuditoria() {
+            const tbody = document.getElementById('auditoria-table-body');
+            try {
+                const res = await fetch('/api/auditoria');
+                const data = await res.json();
+                if (data.success) {
+                    logsCompletos = data.logs;
+                    renderizarTabla(logsCompletos);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">No se pudo cargar la auditoría: ${data.message}</td></tr>`;
+                }
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Error de comunicación con el servidor.</td></tr>`;
+            }
+        }
+
+        function getActionBadgeClass(action) {
+            if (action.startsWith('CREAR')) return 'bg-success text-white';
+            if (action.startsWith('MODIFICAR')) return 'bg-primary text-white';
+            if (action.startsWith('ELIMINAR') || action.startsWith('ANULAR')) return 'bg-danger text-white';
+            if (action.startsWith('REGISTRAR')) return 'bg-warning text-dark';
+            return 'bg-secondary text-white';
+        }
+
+        function renderizarTabla(logs) {
+            const tbody = document.getElementById('auditoria-table-body');
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron registros de auditoría.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => {
+                const fecha = new Date(log.fecha_accion).toLocaleString('es-PE', { hour12: false });
+                const userDisplay = log.nombre_usuario ? `${log.nombres} ${log.apellidos} (@${log.nombre_usuario})` : `Usuario ID: ${log.id_usuario}`;
+                return `
+                    <tr>
+                        <td class="ps-4 text-muted small">${fecha}</td>
+                        <td class="fw-bold">${userDisplay}</td>
+                        <td><span class="badge badge-action ${getActionBadgeClass(log.accion)}">${log.accion.replace('_', ' ')}</span></td>
+                        <td class="text-secondary small fw-bold">${log.tabla_afectada}</td>
+                        <td><code>#${log.registro_id || 'N/A'}</code></td>
+                        <td class="pe-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="text-muted small text-truncate me-2" style="max-width: 250px;" title="${log.detalles || ''}">
+                                    ${log.detalles || 'Sin detalles adicionales.'}
+                                </span>
+                                <button class="btn btn-sm btn-outline-dark rounded-circle px-2 py-1" onclick="verDetalleAuditoria(${log.id_auditoria})" title="Ver detalle completo">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function verDetalleAuditoria(id) {
+            const log = logsCompletos.find(x => x.id_auditoria == id);
+            if (!log) return;
+
+            const fecha = new Date(log.fecha_accion).toLocaleString('es-PE', { hour12: false });
+            const userDisplay = log.nombre_usuario ? `${log.nombres} ${log.apellidos} (@${log.nombre_usuario})` : `Usuario ID: ${log.id_usuario}`;
+
+            document.getElementById('modal-audit-fecha').innerText = fecha;
+            document.getElementById('modal-audit-usuario').innerText = userDisplay;
+            
+            const badgeAccion = document.getElementById('modal-audit-accion');
+            badgeAccion.className = `badge badge-action ${getActionBadgeClass(log.accion)}`;
+            badgeAccion.innerText = log.accion.replace('_', ' ');
+
+            document.getElementById('modal-audit-tabla').innerText = log.tabla_afectada;
+            document.getElementById('modal-audit-registro').innerText = log.registro_id ? `#${log.registro_id}` : '#N/A';
+            document.getElementById('modal-audit-detalles').innerText = log.detalles || 'Sin detalles adicionales.';
+
+            const modal = new bootstrap.Modal(document.getElementById('modalDetalleAuditoria'));
+            modal.show();
+        }
+
+        function filtrarAuditoria() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const actionFilter = document.getElementById('action-filter').value;
+            const tableFilter = document.getElementById('table-filter').value;
+
+            const logsFiltrados = logsCompletos.filter(log => {
+                const matchesSearch = 
+                    (log.nombres && log.nombres.toLowerCase().includes(query)) ||
+                    (log.apellidos && log.apellidos.toLowerCase().includes(query)) ||
+                    (log.nombre_usuario && log.nombre_usuario.toLowerCase().includes(query)) ||
+                    (log.accion && log.accion.toLowerCase().includes(query)) ||
+                    (log.detalles && log.detalles.toLowerCase().includes(query));
+
+                const matchesAction = !actionFilter || log.accion === actionFilter;
+                const matchesTable = !tableFilter || log.tabla_afectada === tableFilter;
+
+                return matchesSearch && matchesAction && matchesTable;
+            });
+
+            renderizarTabla(logsFiltrados);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar si el usuario tiene rol de Admin/Supervisor en LocalStorage
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'Admin' && currentUser.role !== 'Supervisor' && currentUser.role !== 'Administrador')) {
+                window.location.href = '/admin'; // Redirigir si no tiene permisos
+                return;
+            }
+            cargarAuditoria();
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

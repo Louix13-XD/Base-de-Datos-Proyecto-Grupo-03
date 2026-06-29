@@ -1,0 +1,276 @@
+<%- include('header') %>
+
+<main class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <!-- Pestañas de Navegación -->
+                <ul class="nav nav-pills nav-justified bg-light p-2" id="loginTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold py-3" id="login-tab" data-bs-toggle="pill" data-bs-target="#login" type="button" role="tab">INICIAR SESIÓN</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold py-3" id="register-tab" data-bs-toggle="pill" data-bs-target="#register" type="button" role="tab">REGISTRARSE</button>
+                    </li>
+                </ul>
+
+                <div class="card-body p-4 p-md-5 tab-content">
+                    <!-- Formulario de Inicio de Sesión -->
+                    <div class="tab-pane fade show active" id="login" role="tabpanel">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-person-circle display-1 text-warning"></i>
+                            <h4 class="fw-bold mt-2">¡Hola de nuevo!</h4>
+                            <p class="text-muted">Ingresa tus credenciales para continuar</p>
+                        </div>
+                        <form id="formLogin">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Correo Electrónico</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-envelope"></i></span>
+                                    <input type="text" class="form-control border-start-0" id="login-user" placeholder="Ingresa tu correo electrónico" required>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Contraseña</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control border-start-0 border-end-0" id="login-pass" placeholder="Ingresa tu contraseña" required>
+                                    <button class="btn btn-outline-secondary border-start-0 bg-transparent opacity-50" type="button" onclick="togglePassword('login-pass', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="text-end mt-2">
+                                    <a href="#" class="text-warning text-decoration-none small fw-bold">¿Olvidaste tu contraseña?</a>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100 fw-bold py-3 shadow-sm">INGRESAR</button>
+                        </form>
+                    </div>
+
+                    <!-- Formulario de Registro -->
+                    <div class="tab-pane fade" id="register" role="tabpanel">
+                        <div class="text-center mb-4">
+                            <h4 class="fw-bold">Crea tu cuenta</h4>
+                            <p class="text-muted">Únete a la familia Ferretería Palacios</p>
+                        </div>
+                        <form id="formRegister">
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Nombres</label>
+                                    <input type="text" class="form-control" id="reg-names" placeholder="Nombres" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Apellidos</label>
+                                    <input type="text" class="form-control" id="reg-surnames" placeholder="Apellidos" required>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Número de DNI</label>
+                                    <input type="text" class="form-control" id="reg-dni" placeholder="8 dígitos" required maxlength="8" pattern="[0-9]{8}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Fecha de Nacimiento</label>
+                                    <input type="date" class="form-control" id="reg-birthdate">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Número Celular</label>
+                                    <input type="tel" class="form-control" id="reg-phone" placeholder="987654321" required maxlength="9" pattern="[0-9]{9}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Dirección</label>
+                                    <input type="text" class="form-control" id="reg-address" placeholder="Ingresa tu dirección" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="reg-email" placeholder="Ingresa tu correo electrónico" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Contraseña</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control border-end-0" id="reg-pass" placeholder="Ingresa una contraseña" required>
+                                    <button class="btn btn-outline-secondary border-start-0 bg-transparent opacity-50" type="button" onclick="togglePassword('reg-pass', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mb-3 form-check text-start">
+                                <input type="checkbox" class="form-check-input" id="termsCheck" required>
+                                <label class="form-check-label small text-muted" for="termsCheck">
+                                    Acepto los <a href="#" class="text-warning text-decoration-none fw-bold" data-bs-toggle="modal" data-bs-target="#modalTerminos">términos y políticas de privacidad</a>.
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100 fw-bold py-2 mt-2">CREAR CUENTA</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-white border-0 text-center pb-4">
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Mostrar alerta si la sesión expiró por inactividad
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('session_expired') === 'true') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sesión Expirada',
+                text: 'Tu sesión ha sido cerrada automáticamente por inactividad para proteger tus datos.',
+                confirmButtonColor: '#ffc107'
+            });
+        }
+
+        // Activar pestaña de Registro si viene en la URL
+        if (urlParams.get('tab') === 'register') {
+            const registerTabBtn = document.getElementById('register-tab');
+            if (registerTabBtn) {
+                registerTabBtn.click();
+            }
+        }
+
+        // Manejo de Registro con Backend
+        const formRegister = document.getElementById('formRegister');
+        if (formRegister) {
+            formRegister.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = formRegister.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.innerText = 'Cargando...';
+
+                const payload = {
+                    nombres: document.getElementById('reg-names').value,
+                    apellidos: document.getElementById('reg-surnames').value,
+                    dni: document.getElementById('reg-dni').value,
+                    fecha_nacimiento: document.getElementById('reg-birthdate').value || null,
+                    phone: document.getElementById('reg-phone').value,
+                    address: document.getElementById('reg-address').value,
+                    email: document.getElementById('reg-email').value,
+                    password: document.getElementById('reg-pass').value
+                };
+                
+                try {
+                    const res = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    
+                    if(data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Cuenta creada!',
+                            text: 'Ahora puedes iniciar sesión con tus credenciales.',
+                            confirmButtonColor: '#ffc107'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error al registrar',
+                            text: data.message,
+                            confirmButtonColor: '#ffc107'
+                        });
+                        btn.disabled = false;
+                        btn.innerText = 'CREAR CUENTA';
+                    }
+                } catch(error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de conexión',
+                        text: 'No se pudo contactar con el servidor.',
+                        confirmButtonColor: '#ffc107'
+                    });
+                    btn.disabled = false;
+                    btn.innerText = 'CREAR CUENTA';
+                }
+            });
+        }
+
+        // Limpiar localStorage si el servidor nos mandó al login por sesión expirada
+        localStorage.removeItem('currentUser');
+
+        // Manejo de Login con Backend
+        const formLogin = document.getElementById('formLogin');
+        if (formLogin) {
+            formLogin.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = formLogin.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.innerText = 'Ingresando...';
+
+                const payload = {
+                    username: document.getElementById('login-user').value,
+                    password: document.getElementById('login-pass').value
+                };
+
+                try {
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        // Guardar datos del usuario para la UI
+                        localStorage.setItem('currentUser', JSON.stringify(data.user));
+                        
+                        const rol = data.user.role;
+                        // Redirección inteligente
+                        if (rol === 'Admin' || rol === 'Supervisor' || rol === 'Trabajador_Ventas' || rol === 'Trabajador_Almacen') {
+                            window.location.href = '/admin';
+                        } else {
+                            // Si venía del carrito, regresarlo allí
+                            const wasInCart = document.referrer.includes('carrito');
+                            window.location.href = wasInCart ? '/carrito' : '/';
+                        }
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Acceso denegado',
+                            text: data.message || "Credenciales incorrectas.",
+                            confirmButtonColor: '#ffc107'
+                        });
+                        btn.disabled = false;
+                        btn.innerText = 'INGRESAR';
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de conexión',
+                        text: 'No se pudo iniciar sesión en este momento.',
+                        confirmButtonColor: '#ffc107'
+                    });
+                    btn.disabled = false;
+                    btn.innerText = 'INGRESAR';
+                }
+            });
+        }
+    });
+</script>
+
+<%- include('footer') %>

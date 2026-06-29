@@ -1,0 +1,165 @@
+<style>
+    .admin-sidebar {
+        overflow-y: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    .admin-sidebar nav {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .admin-sidebar::-webkit-scrollbar {
+        width: 8px;
+    }
+    .admin-sidebar::-webkit-scrollbar-track {
+        background: #212529;
+    }
+    .admin-sidebar::-webkit-scrollbar-thumb {
+        background: #495057;
+        border-radius: 4px;
+    }
+    .admin-sidebar::-webkit-scrollbar-thumb:hover {
+        background: #ffc107;
+    }
+</style>
+
+<div class="admin-sidebar" id="sidebar">
+    <div class="p-4 text-center">
+        <h4 class="fw-bold text-warning d-flex align-items-center justify-content-center">
+            <img src="/img/logo_ferreteria.png" alt="Logo" class="me-2 rounded-2" style="width: 35px; height: 35px; object-fit: contain;">
+            PALACIOS
+        </h4>
+        <small class="text-secondary">Panel de Control</small>
+    </div>
+    <nav class="mt-3">
+        <a href="/admin" class="nav-link-admin admin-only <%= title.includes('Panel') ? 'active' : '' %>">
+            <i class="bi bi-speedometer2 me-3"></i> Dashboard
+        </a>
+        <a href="/admin/inventario" class="nav-link-admin <%= title.includes('Inventario') ? 'active' : '' %>">
+            <i class="bi bi-box-seam me-3"></i> Inventario
+        </a>
+        <a href="/admin/proveedores" class="nav-link-admin <%= title.includes('Proveedores') ? 'active' : '' %>">
+            <i class="bi bi-shop me-3"></i> Proveedores
+        </a>
+        <a href="/admin/abastecimiento" class="nav-link-admin <%= title.includes('Abastecimiento') ? 'active' : '' %>">
+            <i class="bi bi-journal-plus me-3"></i> Abastecimiento
+        </a>
+        <a href="/admin/personal" class="nav-link-admin admin-only <%= title.includes('Personal') || title.includes('Personal') ? 'active' : '' %>">
+            <i class="bi bi-person-badge me-3"></i> Usuarios
+        </a>
+        <a href="/admin/usuarios" class="nav-link-admin admin-only <%= title.includes('Clientes') || title.includes('Usuarios') ? 'active' : '' %>">
+            <i class="bi bi-people me-3"></i> Clientes
+        </a>
+        <a href="/admin/ventas" class="nav-link-admin <%= title.includes('Ventas') ? 'active' : '' %>">
+            <i class="bi bi-cart-check me-3"></i> Ventas
+        </a>
+        <a href="/admin/mermas" class="nav-link-admin <%= title.includes('Mermas') ? 'active' : '' %>">
+            <i class="bi bi-exclamation-octagon me-3"></i> Mermas
+        </a>
+        <a href="/admin/logistica" class="nav-link-admin <%= title.includes('Logística') ? 'active' : '' %>">
+            <i class="bi bi-truck me-3"></i> Logística
+        </a>
+        <a href="/admin/reportes" class="nav-link-admin admin-only <%= title.includes('Reportes') ? 'active' : '' %>">
+            <i class="bi bi-graph-up-arrow me-3"></i> Reportes
+        </a>
+        <a href="/admin/auditoria" class="nav-link-admin admin-only <%= title.includes('Auditoría') ? 'active' : '' %>">
+            <i class="bi bi-journal-text me-3"></i> Auditoría
+        </a>
+        <hr class="mx-4 border-secondary mt-auto">
+        <a href="/" class="nav-link-admin">
+            <i class="bi bi-house me-3"></i> Ver Tienda
+        </a>
+        <a href="#" id="btn-logout" class="nav-link-admin text-danger mb-3">
+            <i class="bi bi-box-arrow-left me-3"></i> Cerrar Sesión
+        </a>
+    </nav>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+    .swal2-popup { border-radius: 20px !important; font-family: 'Inter', sans-serif !important; }
+    .swal2-styled.swal2-confirm { background-color: #ffc107 !important; color: #000 !important; font-weight: bold !important; border-radius: 10px !important; }
+    .swal2-styled.swal2-cancel { border-radius: 10px !important; }
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            // Validar la sesión activamente con el servidor (evitando cache)
+            const sessionRes = await fetch('/api/session?_t=' + Date.now(), { cache: 'no-store' });
+            const sessionData = await sessionRes.json();
+            
+            if (!sessionData.success || !sessionData.user) {
+                window.location.href = '/login';
+                return;
+            }
+            const currentUser = sessionData.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Ocultar elementos si no es administrador o supervisor
+            if (currentUser.role !== 'admin' && 
+                currentUser.role !== 'Admin' && 
+                currentUser.role !== 'Supervisor' && 
+                currentUser.role !== 'Administrador') {
+                
+                // Mostrar solo lo permitido para otros roles si corresponde,
+                // de lo contrario ocultar sección de administración
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        } catch (e) {
+            console.error('Error al validar sesión en sidebar:', e);
+            // Fallback con localStorage en caso de error de red
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.role === 'Cliente' || currentUser.role === 'client') {
+                window.location.href = '/login';
+                return;
+            }
+            if (currentUser.role !== 'admin' && 
+                currentUser.role !== 'Admin' && 
+                currentUser.role !== 'Supervisor' && 
+                currentUser.role !== 'Administrador') {
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        }
+
+        // Lógica para cerrar sesión
+        const btnLogout = document.getElementById('btn-logout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const result = await Swal.fire({
+                    title: '¿Cerrar Sesión?',
+                    text: '¿Estás seguro de que deseas salir del panel de administración?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, salir',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true,
+                    confirmButtonColor: '#ffc107',
+                    cancelButtonColor: '#343a40'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        await fetch('/api/logout', { method: 'POST' });
+                    } catch(err) {
+                        console.error('Error al notificar cierre de sesión al servidor:', err);
+                    }
+                    localStorage.removeItem('currentUser');
+                    Swal.fire({
+                        title: 'Sesión Cerrada',
+                        text: 'Has cerrado sesión administrativa correctamente.',
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = '/login';
+                    });
+                }
+            });
+        }
+    });
+</script>

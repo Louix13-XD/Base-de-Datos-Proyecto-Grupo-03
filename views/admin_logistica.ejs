@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; transition: all 0.3s; z-index: 1000; }
+        .admin-content { margin-left: 250px; padding: 30px; transition: all 0.3s; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; transition: all 0.2s; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left: 4px solid #ffc107; }
+        .stat-card { border: none; border-radius: 20px; transition: transform 0.3s; height: 100%; }
+        @media (max-width: 768px) { .admin-sidebar { margin-left: -250px; } .admin-content { margin-left: 0; } }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+    <%- include('admin_sidebar') %>
+
+    <main class="admin-content">
+        <header class="mb-4">
+            <h2 class="fw-bold">Gestión de Logística y Despacho</h2>
+            <p class="text-muted">Controla y confirma las entregas de pedidos a domicilio y recojo en tienda.</p>
+        </header>
+
+        <div class="row g-4 mb-5">
+            <!-- Delivery -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-warning"><i class="bi bi-truck me-2"></i>Pedidos para Delivery</h5>
+                        <span id="count-delivery" class="badge bg-warning text-dark">0</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <tbody id="list-delivery">
+                                <!-- JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- Recojo -->
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-info"><i class="bi bi-shop me-2"></i>Pedidos para Recojo</h5>
+                        <span id="count-recojo" class="badge bg-info">0</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <tbody id="list-recojo">
+                                <!-- JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Detalle Pedido -->
+    <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalTitle">Detalle del Pedido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="modalContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-warning" role="status"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">CERRAR</button>
+                    <button type="button" class="btn btn-success fw-bold" id="btn-confirm-modal">CONFIRMAR ENTREGA</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sales = [];
+
+        // Función global para cargar ventas
+        async function loadSales() {
+            try {
+                const res = await fetch('/api/ventas');
+                const data = await res.json();
+                if(data.success) {
+                    sales = data.ventas;
+                    renderLists();
+                }
+            } catch(e) { 
+                console.error("Error al cargar ventas:", e); 
+            }
+        }
+
+        // Función para renderizar las listas de logística
+        function renderLists() {
+            if(!sales || sales.length === 0) return;
+            
+            const pending = sales.filter(s => s.estado_logistico && s.estado_logistico.trim() === 'En espera');
+            const deliveryList = pending.filter(s => s.tipo_entrega && s.tipo_entrega.trim().toLowerCase() === 'delivery');
+            const recojoList = pending.filter(s => s.tipo_entrega && s.tipo_entrega.trim().toLowerCase() === 'recojo');
+            
+            document.getElementById('count-delivery').innerText = deliveryList.length;
+            document.getElementById('count-recojo').innerText = recojoList.length;
+
+            renderTable('list-delivery', deliveryList);
+            renderTable('list-recojo', recojoList);
+        }
+
+        // Función para renderizar las tablas
+        function renderTable(id, list) {
+            const tbody = document.getElementById(id);
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(list.length === 0) {
+                tbody.innerHTML = '<tr><td class="text-center py-4 text-muted small">No hay pedidos pendientes aquí.</td></tr>';
+                return;
+            }
+            list.forEach(s => {
+                const code = s.codigo_boleta.replace('ORD-', '');
+                const cliente = s.cliente_nombre || 'Cliente';
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">#${code}</div>
+                            <small class="text-muted">${cliente}</small>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-light btn-sm me-2" onclick="verDetalle('${s.codigo_boleta}')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-dark btn-sm fw-bold" onclick="confirmDelivery('${s.codigo_boleta}')">ENTREGADO</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Función global para ver detalle
+        window.verDetalle = async (code) => {
+            const modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
+            modal.show();
+            const content = document.getElementById('modalContent');
+            content.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-warning"></div></div>';
+            
+            try {
+                const res = await fetch(`/api/ventas/detalle/${code}`);
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('modalTitle').innerText = `Pedido #${code.replace('ORD-', '')}`;
+                    let html = `
+                        <p class="mb-3"><strong>Cliente:</strong> ${data.venta.cliente_nombre || 'Desconocido'}</p>
+                        <p class="mb-3 small text-muted"><i class="bi bi-geo-alt me-1"></i>${data.venta.direccion_envio || 'No especificada'}</p>
+                        <hr>
+                        <h6 class="fw-bold mb-3 small text-uppercase text-muted">Productos:</h6>
+                        <div class="list-group list-group-flush mb-3">
+                    `;
+                    data.productos.forEach(p => {
+                        html += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <div class="fw-bold small">${p.nombre_producto}</div>
+                                    <small class="text-muted">Cant: ${p.cantidad}</small>
+                                </div>
+                                <span class="fw-bold small">S/ ${parseFloat(p.subtotal).toFixed(2)}</span>
+                            </div>
+                        `;
+                    });
+                    html += `</div>
+                        <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded-3 mt-3">
+                            <span class="fw-bold">TOTAL PAGADO</span>
+                            <h5 class="fw-bold text-dark mb-0">S/ ${parseFloat(data.venta.total_venta).toFixed(2)}</h5>
+                        </div>
+                    `;
+                    content.innerHTML = html;
+                }
+            } catch(e) { content.innerHTML = '<p class="text-danger">Error al cargar datos.</p>'; }
+        };
+
+        // Función global para confirmar entrega
+        window.confirmDelivery = async (code) => {
+            const result = await Swal.fire({
+                title: '¿Confirmar entrega?',
+                text: `¿Estás seguro de marcar el pedido #${code.replace('ORD-', '')} como entregado?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, entregado',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            });
+
+            if(!result.isConfirmed) return;
+
+            try {
+                const res = await fetch('/api/ventas/actualizar-logistica', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo: code, estado: 'Entregado' })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    Swal.fire({
+                        title: '¡Éxito!',
+                        text: 'El pedido ha sido marcado como entregado.',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    loadSales(); 
+                } else {
+                    Swal.fire('Error', data.message || "No se pudo actualizar.", 'error');
+                }
+            } catch(e) { 
+                console.error(e);
+                Swal.fire('Error', 'Hubo un problema de conexión.', 'error');
+            }
+        };
+
+        // Escuchador para el buscador
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.role === 'Cliente' || currentUser.role === 'client') {
+                window.location.href = '/login';
+                return;
+            }
+            loadSales();
+            const searchInput = document.getElementById('dispatch-search');
+            if(searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const val = e.target.value.trim().toLowerCase();
+                    const resultDiv = document.getElementById('search-result');
+                    if(val.length > 0) {
+                        const match = sales.find(s => s.codigo_boleta.toLowerCase().includes(val) || s.codigo_boleta.replace('ORD-', '').includes(val));
+                        if(match) {
+                            resultDiv.classList.remove('d-none');
+                            resultDiv.innerHTML = `
+                                <div class="alert bg-white text-dark d-flex justify-content-between align-items-center shadow-sm border-0 mb-0">
+                                    <div>
+                                        <h6 class="fw-bold mb-0">Pedido #${match.codigo_boleta.replace('ORD-', '')} - ${match.cliente_nombre || 'Cliente'}</h6>
+                                        <small class="text-muted">${match.tipo_entrega === 'delivery' ? 'Delivery' : 'Recojo en tienda'} | S/ ${parseFloat(match.total_venta).toFixed(2)}</small>
+                                    </div>
+                                    <div>
+                                        ${match.estado_logistico === 'En espera' 
+                                            ? `<button class="btn btn-success fw-bold" onclick="confirmDelivery('${match.codigo_boleta}')">CONFIRMAR ENTREGA</button>`
+                                            : `<span class="badge bg-success px-3 py-2">YA ENTREGADO</span>`}
+                                    </div>
+                                </div>
+                            `;
+                        } else { resultDiv.innerHTML = '<p class="text-warning small mb-0 mt-2">No se encontró el pedido.</p>'; }
+                    } else { resultDiv.classList.add('d-none'); }
+                });
+            }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

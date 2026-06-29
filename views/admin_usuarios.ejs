@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Inter', sans-serif; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; }
+        .admin-content { margin-left: 250px; padding: 30px; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; border-left: 4px solid transparent; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left-color: #ffc107; }
+        .user-avatar { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+    <%- include('admin_sidebar') %>
+
+    <main class="admin-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold">Gestión de Usuarios</h2>
+                <p class="text-muted">Cuentas creadas por clientes desde la tienda.</p>
+            </div>
+            <div class="bg-white p-3 rounded-4 shadow-sm">
+                <span class="text-muted small fw-bold text-uppercase d-block">Total Clientes</span>
+                <h4 class="fw-bold mb-0" id="total-clients-count">0</h4>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="p-4 bg-white border-bottom">
+                <h5 class="fw-bold mb-0">Listado de Clientes Registrados</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">Cliente</th>
+                            <th>DNI</th>
+                            <th>Correo Electrónico</th>
+                            <th>Celular</th>
+                            <th>Estado</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-table-body">
+                        <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Editar Cliente -->
+    <div class="modal fade" id="modalEditarCliente" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Perfil del Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formEditarCliente">
+                        <input type="hidden" id="edit-client-id">
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Nombres</label>
+                                <input type="text" class="form-control" id="edit-client-names" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Apellidos</label>
+                                <input type="text" class="form-control" id="edit-client-surnames" required>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">DNI</label>
+                                <input type="text" class="form-control" id="edit-client-dni" required maxlength="8" pattern="[0-9]{8}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Fecha de Nacimiento</label>
+                                <input type="date" class="form-control" id="edit-client-birthdate">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="edit-client-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Número Celular</label>
+                            <input type="tel" class="form-control" id="edit-client-phone" maxlength="9" pattern="[0-9]{9}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Dirección</label>
+                            <input type="text" class="form-control" id="edit-client-address">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Estado de Cuenta</label>
+                            <select class="form-select" id="edit-client-status">
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo / Bloqueado</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small">Nueva Contraseña (Dejar en blanco para no cambiar)</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="edit-client-pass">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('edit-client-pass', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow">GUARDAR CAMBIOS</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+
+        let allClients = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.role === 'Cliente' || currentUser.role === 'client') {
+                window.location.href = '/login';
+                return;
+            }
+            fetchClients();
+        });
+
+        async function fetchClients() {
+            try {
+                const res = await fetch('/api/usuarios?rol=Cliente');
+                const data = await res.json();
+                if (data.success) {
+                    allClients = data.usuarios;
+                    renderClients(allClients);
+                }
+            } catch (e) {
+                console.error('Error al cargar clientes:', e);
+            }
+        }
+
+        function renderClients(users) {
+            const tbody = document.getElementById('clients-table-body');
+            document.getElementById('total-clients-count').innerText = users.length;
+            
+            tbody.innerHTML = '';
+
+            if(users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">No hay clientes registrados todavía.</td></tr>';
+                return;
+            }
+
+            users.forEach((user) => {
+                const statusBadge = user.estado === 'Activo' 
+                    ? '<span class="badge bg-success bg-opacity-10 text-success px-3 rounded-pill">Activo</span>'
+                    : '<span class="badge bg-danger bg-opacity-10 text-danger px-3 rounded-pill">Inactivo</span>';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(user.nombre_completo)}&background=ffc107&color=212529" class="user-avatar me-3 shadow-sm">
+                                <div>
+                                    <p class="fw-bold mb-0">${user.nombre_completo}</p>
+                                    <small class="text-muted text-uppercase" style="font-size: 10px;">Cuenta Cliente</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-muted fw-bold">${user.dni || '---'}</td>
+                        <td class="text-muted">${user.email}</td>
+                        <td class="text-muted">${user.celular || '---'}</td>
+                        <td>${statusBadge}</td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-dark me-1" onclick="openEditClient(${user.id})" title="Ver detalles"><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteClient(${user.id})" title="Eliminar cuenta"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openEditClient(id) {
+            const client = allClients.find(c => c.id === id);
+            if (!client) return;
+
+            document.getElementById('edit-client-id').value = client.id;
+            document.getElementById('edit-client-names').value = client.nombres || client.nombre_completo.split(' ')[0] || '';
+            document.getElementById('edit-client-surnames').value = client.apellidos || client.nombre_completo.split(' ').slice(1).join(' ') || '';
+            document.getElementById('edit-client-dni').value = client.dni || '';
+            document.getElementById('edit-client-email').value = client.email;
+            document.getElementById('edit-client-phone').value = client.celular || '';
+            document.getElementById('edit-client-address').value = client.direccion || '';
+            document.getElementById('edit-client-status').value = client.estado || 'Activo';
+            document.getElementById('edit-client-pass').value = '';
+
+            if (client.birthdate) {
+                const dateVal = new Date(client.birthdate).toISOString().split('T')[0];
+                document.getElementById('edit-client-birthdate').value = dateVal;
+            } else {
+                document.getElementById('edit-client-birthdate').value = '';
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarCliente'));
+            modal.show();
+        }
+
+        document.getElementById('formEditarCliente').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-client-id').value;
+            const clientNombres = document.getElementById('edit-client-names').value;
+            const clientApellidos = document.getElementById('edit-client-surnames').value;
+            
+            const payload = {
+                nombres: clientNombres,
+                apellidos: clientApellidos,
+                nombre_completo: `${clientNombres} ${clientApellidos}`,
+                dni: document.getElementById('edit-client-dni').value,
+                fecha_nacimiento: document.getElementById('edit-client-birthdate').value || null,
+                email: document.getElementById('edit-client-email').value,
+                celular: document.getElementById('edit-client-phone').value,
+                direccion_zona: document.getElementById('edit-client-address').value,
+                estado: document.getElementById('edit-client-status').value,
+                password: document.getElementById('edit-client-pass').value,
+                rol: 'Cliente'
+            };
+
+            try {
+                const res = await fetch(`/api/usuarios/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalEditarCliente')).hide();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cliente actualizado',
+                        text: 'Los datos del cliente se actualizaron con éxito.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    fetchClients();
+                } else {
+                    Swal.fire('Error', 'No se pudo actualizar: ' + data.message, 'error');
+                }
+            } catch (e) {
+                Swal.fire('Error', 'Error de conexión con el servidor', 'error');
+            }
+        });
+
+        async function deleteClient(id) {
+            const result = await Swal.fire({
+                title: '¿Eliminar cuenta?',
+                text: '¿Estás seguro de que deseas eliminar la cuenta de este cliente? Esta acción no se puede deshacer.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (data.success) {
+                        Swal.fire({
+                            title: '¡Eliminado!',
+                            text: 'La cuenta ha sido eliminada correctamente.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        fetchClients();
+                    } else {
+                        Swal.fire('Error', 'No se pudo eliminar: ' + data.message, 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('Error', 'Error de conexión con el servidor', 'error');
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

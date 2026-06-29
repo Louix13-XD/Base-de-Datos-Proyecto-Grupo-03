@@ -1,0 +1,76 @@
+<%- include('header') %>
+
+<main class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/" class="text-warning">Inicio</a></li>
+            <li class="breadcrumb-item active text-capitalize" aria-current="page"><%= categoria %></li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Botón de Filtros para Móvil -->
+        <div class="col-12 d-md-none mb-3">
+            <button class="btn btn-dark w-100 py-2 fw-bold shadow-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasFilters">
+                <i class="bi bi-filter-left me-2"></i> FILTRAR Y ORDENAR
+            </button>
+        </div>
+
+        <!-- Filtros Laterales (Escritorio) -->
+        <aside class="col-md-3 d-none d-md-block">
+            <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 sticky-top" style="top: 100px; z-index: 10;">
+                <%- include('componentes/filtros_contenido') %>
+            </div>
+        </aside>
+
+        <!-- Lista de Productos -->
+        <section class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold text-capitalize m-0 fs-3"><%= categoria %></h2>
+                <div class="dropdown d-none d-md-block">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Ordenar por
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Menor precio</a></li>
+                        <li><a class="dropdown-item" href="#">Mayor precio</a></li>
+                        <li><a class="dropdown-item" href="#">Más recientes</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3" id="category-products">
+                <!-- Se cargarán con JS dinámicamente -->
+                <div class="col text-center py-5 w-100">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Paginación -->
+            <div id="category-pagination-container" class="d-flex justify-content-center mt-5 mb-4"></div>
+        </section>
+    </div>
+</main>
+
+<!-- Offcanvas para Filtros en Móvil -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasFilters" aria-labelledby="offcanvasFiltersLabel">
+    <div class="offcanvas-header bg-dark text-white">
+        <h5 class="offcanvas-title fw-bold" id="offcanvasFiltersLabel">Filtros</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <%- include('componentes/filtros_contenido') %>
+        <div class="mt-4">
+            <button class="btn btn-warning w-100 fw-bold py-3 rounded-pill" data-bs-dismiss="offcanvas">VER RESULTADOS</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Pasar la categoría y búsqueda de EJS a JS
+    const currentCategory = "<%= categoria %>";
+    const searchResultQuery = "<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>";
+</script>
+
+<%- include('footer') %>

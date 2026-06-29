@@ -1,0 +1,355 @@
+<%- include('header') %>
+
+<main class="container mt-4 pb-5">
+    <!-- Indicador de Pasos -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between position-relative">
+                <div class="step-line"></div>
+                <div class="step-item active" id="step-1-indicator">
+                    <div class="step-num">1</div>
+                    <div class="step-label">Entrega</div>
+                </div>
+                <div class="step-item" id="step-2-indicator">
+                    <div class="step-num">2</div>
+                    <div class="step-label">Pago</div>
+                </div>
+                <div class="step-item" id="step-3-indicator">
+                    <div class="step-num">3</div>
+                    <div class="step-label">Finalizado</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banner de Aviso Demo -->
+    <div class="alert alert-warning border-0 shadow-sm rounded-4 d-flex align-items-center p-3 mb-4" role="alert">
+        <i class="bi bi-shield-lock-fill fs-3 me-3 text-dark"></i>
+        <p class="mb-0 small"><strong>ENTORNO SEGURO:</strong> Esta es una simulación académica. No ingreses datos reales.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Izquierda: Formulario -->
+        <div class="col-lg-7">
+            <form id="checkoutForm">
+                <!-- PASO 1: ENTREGA -->
+                <div id="section-step-1">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                        <h4 class="fw-bold mb-4">¿Cómo quieres recibir tu pedido?</h4>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="delivery-option p-3 border rounded-4 text-center cursor-pointer active" id="opt-delivery">
+                                    <i class="bi bi-truck fs-2 d-block mb-2"></i>
+                                    <span class="fw-bold">Envío a Domicilio</span>
+                                    <small class="d-block text-muted mt-1" id="shipping-msg">S/ 15.00 estándar</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="delivery-option p-3 border rounded-4 text-center cursor-pointer" id="opt-pickup">
+                                    <i class="bi bi-shop fs-2 d-block mb-2"></i>
+                                    <span class="fw-bold">Recojo en Tienda</span>
+                                    <small class="d-block text-success mt-1">¡Gratis!</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Datos del Cliente (Nombre y DNI siempre visibles) -->
+                        <div class="mb-3">
+                            <h5 class="fw-bold mb-3 small text-uppercase text-muted">Datos del Destinatario</h5>
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <label class="form-label small fw-bold">Nombres y Apellidos</label>
+                                    <input type="text" id="cust-name" class="form-control" placeholder="Ej: Juan Pérez" value="<%= user ? user.name : '' %>">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">D.N.I.</label>
+                                    <input type="text" id="cust-dni" class="form-control" placeholder="8 dígitos" value="<%= user ? user.dni : '' %>" maxlength="8">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dirección (Solo visible para Delivery) -->
+                        <div id="address-fields" class="mb-4">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Dirección Completa</label>
+                                    <input type="text" id="cust-address" class="form-control" placeholder="Calle, Número, Distrito" value="<%= user ? user.direccion : '' %>">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="pickup-info" class="d-none">
+                            <div class="alert bg-light border-0 rounded-4 p-3">
+                                <p class="mb-1 fw-bold"><i class="bi bi-geo-alt-fill me-2 text-warning"></i>Punto de Recojo:</p>
+                                <p class="mb-0 small">Ferretería Palacios - Av. Principal 456, Centro Histórico.</p>
+                                <p class="mt-2 mb-0 extra-small text-muted">Horario: Lun-Sab 8:00 AM - 7:00 PM</p>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-warning w-100 fw-bold py-3 mt-4 rounded-3" onclick="goToStep(2)">CONTINUAR AL PAGO</button>
+                    </div>
+                </div>
+
+                <!-- PASO 2: PAGO -->
+                <div id="section-step-2" class="d-none">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                        <div class="d-flex align-items-center mb-4">
+                            <button type="button" class="btn btn-light btn-sm me-3" onclick="goToStep(1)"><i class="bi bi-arrow-left"></i></button>
+                            <h4 class="fw-bold mb-0">Información de Pago</h4>
+                        </div>
+
+                        <div class="bg-light p-4 rounded-4 mb-4 border">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <span class="fw-bold"><i class="bi bi-credit-card me-2"></i>Tarjeta Bancaria</span>
+                                <i class="bi bi-credit-card-2-front fs-3 opacity-50"></i>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Número de Tarjeta</label>
+                                <input type="text" id="cardNum" class="form-control fs-5 py-2" placeholder="0000 0000 0000 0000" maxlength="19" required>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label small fw-bold">Vencimiento</label>
+                                    <input type="text" id="cardExp" class="form-control" placeholder="MM/YY" maxlength="5" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label small fw-bold">CVV</label>
+                                    <input type="password" id="cardCvv" class="form-control" placeholder="***" maxlength="3">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="button" onclick="processOrder()" class="btn btn-dark w-100 fw-bold py-3 rounded-3 shadow-sm">FINALIZAR COMPRA</button>
+                            <p class="text-center extra-small text-muted mt-3 mb-0">Al finalizar, aceptas nuestros términos y condiciones de venta.</p>
+                        </div>
+                        <div id="btnLoading" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Derecha: Resumen -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 20px;">
+                <h5 class="fw-bold mb-4 text-uppercase small text-muted">Resumen de Compra</h5>
+                <div id="checkout-items" class="mb-4">
+                    <!-- JS -->
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal:</span>
+                    <span class="fw-bold" id="subtotal-val">S/ 0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3" id="shipping-row">
+                    <span class="text-muted">Envío:</span>
+                    <span class="fw-bold text-success" id="shipping-val">S/ 0.00</span>
+                </div>
+                <div class="d-flex justify-content-between p-3 bg-warning bg-opacity-10 rounded-3">
+                    <span class="fw-bold fs-5">TOTAL:</span>
+                    <span class="fw-bold fs-4 text-dark" id="final-total">S/ 0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+    .step-num { width: 35px; height: 35px; background: #e9ecef; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto 8px; z-index: 2; position: relative; }
+    .step-item.active .step-num { background: #ffc107; color: #000; }
+    .step-label { font-size: 12px; font-weight: bold; color: #6c757d; text-transform: uppercase; text-align: center; }
+    .step-item.active .step-label { color: #000; }
+    .step-line { position: absolute; top: 17px; left: 10%; right: 10%; height: 2px; background: #e9ecef; z-index: 1; }
+    .delivery-option { cursor: pointer; transition: 0.3s; border-width: 2px !important; }
+    .delivery-option:hover { border-color: #ffc107; background: #fffdf5; }
+    .delivery-option.active { border-color: #ffc107; background: #fffdf5; }
+    .cursor-pointer { cursor: pointer; }
+    .extra-small { font-size: 10px; }
+</style>
+
+<!-- Modal Procesando -->
+<div class="modal fade" id="processingModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg p-5 text-center rounded-4">
+            <div class="spinner-border text-warning mb-4" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h4 class="fw-bold">Validando Transacción...</h4>
+            <p class="text-muted mb-0">Estamos procesando tu pago de forma segura.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        if (cart.length === 0) { window.location.href = '/'; return; }
+
+        let subtotal = 0;
+        let shipping = 15;
+        let typeEntrega = 'delivery';
+
+        const itemsContainer = document.getElementById('checkout-items');
+        cart.forEach(item => {
+            const itemTotal = item.price * item.quantity;
+            subtotal += itemTotal;
+            itemsContainer.innerHTML += `
+                <div class="d-flex justify-content-between mb-2 small">
+                    <span class="text-muted">${item.name} (x${item.quantity})</span>
+                    <span class="fw-bold">S/ ${itemTotal.toFixed(2)}</span>
+                </div>
+            `;
+        });
+
+        // Lógica de Envío Gratis
+        if (subtotal >= 200) {
+            shipping = 0;
+            document.getElementById('shipping-msg').innerHTML = '<span class="text-success fw-bold">¡ENVÍO GRATIS!</span>';
+        }
+
+        function updateTotals() {
+            document.getElementById('subtotal-val').innerText = `S/ ${subtotal.toFixed(2)}`;
+            document.getElementById('shipping-val').innerText = shipping === 0 ? 'GRATIS' : `S/ ${shipping.toFixed(2)}`;
+            document.getElementById('final-total').innerText = `S/ ${(subtotal + shipping).toFixed(2)}`;
+        }
+
+        updateTotals();
+
+        // Manejo de Opciones de Entrega
+        const optDelivery = document.getElementById('opt-delivery');
+        const optPickup = document.getElementById('opt-pickup');
+        const addressFields = document.getElementById('address-fields');
+        const pickupInfo = document.getElementById('pickup-info');
+
+        optDelivery.addEventListener('click', () => {
+            optDelivery.classList.add('active');
+            optPickup.classList.remove('active');
+            addressFields.classList.remove('d-none'); // MOSTRAR dirección
+            pickupInfo.classList.add('d-none');
+            shipping = subtotal >= 200 ? 0 : 15;
+            typeEntrega = 'delivery';
+            updateTotals();
+        });
+
+        optPickup.addEventListener('click', () => {
+            optPickup.classList.add('active');
+            optDelivery.classList.remove('active');
+            addressFields.classList.add('d-none'); // OCULTAR dirección
+            pickupInfo.classList.remove('d-none');
+            shipping = 0;
+            typeEntrega = 'recojo';
+            updateTotals();
+        });
+
+        // Navegación entre pasos
+        window.goToStep = (n) => {
+            if (n === 2) {
+                // Validar campos si es delivery
+                if (typeEntrega === 'delivery') {
+                    if (!document.getElementById('cust-name').value || !document.getElementById('cust-address').value) {
+                        alert("Por favor completa los datos de entrega.");
+                        return;
+                    }
+                }
+                document.getElementById('section-step-1').classList.add('d-none');
+                document.getElementById('section-step-2').classList.remove('d-none');
+                document.getElementById('step-2-indicator').classList.add('active');
+            } else {
+                document.getElementById('section-step-1').classList.remove('d-none');
+                document.getElementById('section-step-2').classList.add('d-none');
+                document.getElementById('step-2-indicator').classList.remove('active');
+            }
+            window.scrollTo(0, 0);
+        };
+
+        // Máscaras de tarjeta
+        document.getElementById('cardNum').addEventListener('input', e => {
+            e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{4})/g, '$1 ').trim();
+        });
+        document.getElementById('cardExp').addEventListener('input', e => {
+            e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{2})/, '$1/').trim();
+        });
+
+        // Envío final
+        window.processOrder = async () => {
+            console.log("Iniciando envío de orden manual...");
+            
+            try {
+                // Validar campos manualmente (Obligatorios para todos)
+                const name = document.getElementById('cust-name').value;
+                const dni = document.getElementById('cust-dni').value;
+                const addr = document.getElementById('cust-address').value;
+                const card = document.getElementById('cardNum').value;
+
+                if (!name || !dni || !card) {
+                    Swal.fire('Datos incompletos', 'Por favor, completa tu Nombre, DNI y Datos de Tarjeta.', 'warning');
+                    return;
+                }
+
+                // La dirección solo es obligatoria si es Delivery
+                if (typeEntrega === 'delivery' && !addr) {
+                    Swal.fire('Falta dirección', 'Por favor, ingresa una dirección para el envío a domicilio.', 'warning');
+                    return;
+                }
+
+                // Mostrar carga moderna
+                Swal.fire({
+                    title: 'Procesando Pago',
+                    html: 'Estamos validando tu transacción, por favor espera...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const c_id = parseInt('<%= user ? user.id : 1 %>');
+                const finalTotal = parseFloat((subtotal + shipping).toFixed(2));
+
+                const payload = {
+                    cliente_id: c_id,
+                    dni_cliente: dni, // Enviamos el DNI
+                    total_venta: finalTotal,
+                    metodo_pago: 'Tarjeta',
+                    tipo_entrega: typeEntrega,
+                    costo_envio: shipping,
+                    direccion_envio: typeEntrega === 'delivery' ? addr : 'Recojo en Tienda',
+                    detalles: cart.map(item => ({
+                        id: item.id,
+                        cantidad: parseInt(item.quantity),
+                        precio: parseFloat(item.price),
+                        nombre: item.name
+                    }))
+                };
+
+                const res = await fetch('/api/ventas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.removeItem('cart');
+                    Swal.fire({
+                        title: '¡Pago Exitoso!',
+                        text: 'Tu pedido ha sido procesado correctamente.',
+                        icon: 'success',
+                        confirmButtonText: 'Ver Boleta',
+                        confirmButtonColor: '#ffc107'
+                    }).then(() => {
+                        window.location.href = '/boleta/' + data.codigo_boleta.replace('ORD-', '');
+                    });
+                } else { 
+                    Swal.fire('Error', data.message || 'No se pudo procesar la venta.', 'error');
+                }
+            } catch (err) { 
+                console.error("Error:", err);
+                Swal.fire('Error Técnico', err.message, 'error');
+            }
+        };
+    });
+</script>
+
+<%- include('footer') %>

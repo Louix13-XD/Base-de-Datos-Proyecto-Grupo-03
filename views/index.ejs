@@ -1,0 +1,73 @@
+<%- include('header') %>
+
+<!-- Hero Section Full Width -->
+<div class="slim-hero-full text-white shadow-sm">
+    <div class="container">
+        <div class="py-2">
+            <h2 class="fw-bold mb-1 d-flex align-items-center">
+                <i class="bi bi-shield-check text-warning me-2"></i>Calidad que Construye
+            </h2>
+            <p class="mb-0 text-white-50 small">Las mejores marcas y herramientas para tus proyectos grandes y pequeños.</p>
+        </div>
+    </div>
+</div>
+
+<main class="container mt-3">
+
+    <!-- Categories Section -->
+    <section class="mb-5">
+        <div class="text-center mb-3">
+            <h6 class="fw-bold text-muted text-uppercase tracking-wider small mb-0">Explora por Categoría</h6>
+        </div>
+        <div class="category-pills-scroll">
+            <a href="/productos/herramientas" class="category-pill">
+                <i class="bi bi-hammer"></i>
+                <span>Herramientas</span>
+            </a>
+            <a href="/productos/pintura" class="category-pill">
+                <i class="bi bi-droplet-fill"></i>
+                <span>Pintura</span>
+            </a>
+            <a href="/productos/electricidad" class="category-pill">
+                <i class="bi bi-lightning-fill"></i>
+                <span>Electricidad</span>
+            </a>
+            <a href="/productos/plomeria" class="category-pill">
+                <i class="bi bi-water"></i>
+                <span>Plomería</span>
+            </a>
+            <a href="/productos/construccion" class="category-pill">
+                <i class="bi bi-bricks"></i>
+                <span>Construcción</span>
+            </a>
+            <a href="/productos/jardineria" class="category-pill">
+                <i class="bi bi-tree-fill"></i>
+                <span>Jardinería</span>
+            </a>
+            <a href="/productos/fijaciones" class="category-pill">
+                <i class="bi bi-nut"></i>
+                <span>Fijaciones</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold m-0 text-dark">Productos Destacados</h4>
+            <a href="#" class="text-warning fw-bold text-decoration-none">Ver todos <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row row-cols-2 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-3" id="featured-products">
+            <!-- Los productos se cargarán dinámicamente con JS para demostrar Manipulación del DOM -->
+            <div class="col text-center py-5 w-100">
+                <div class="spinner-border text-warning" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <!-- Paginación -->
+        <div id="pagination-container" class="d-flex justify-content-center mt-5 mb-4"></div>
+    </section>
+</main>
+
+<%- include('footer') %>

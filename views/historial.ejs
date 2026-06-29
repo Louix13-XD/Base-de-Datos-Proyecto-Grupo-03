@@ -1,0 +1,210 @@
+<%- include('header') %>
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold"><i class="bi bi-box-seam me-2 text-warning"></i>Mis Pedidos</h2>
+            <p class="text-muted">Rastrea tus compras y vuelve a pedir tus productos favoritos.</p>
+        </div>
+        <div class="bg-dark text-white px-4 py-2 rounded-pill shadow-sm">
+            <span class="small opacity-75">Total pedidos:</span>
+            <span class="fw-bold ms-1" id="order-count">0</span>
+        </div>
+    </div>
+
+    <!-- Contenedor de Pedidos -->
+    <div id="orders-container" class="clearfix">
+        <!-- Los pedidos se cargarán aquí dinámicamente -->
+    </div>
+
+    <!-- Estado Vacío -->
+    <div id="empty-history" class="text-center py-5 d-none">
+        <div class="mb-4">
+            <i class="bi bi-bag-x text-muted" style="font-size: 5rem;"></i>
+        </div>
+        <h4 class="fw-bold">Aún no has realizado compras</h4>
+        <p class="text-muted">Explora nuestra tienda y encuentra las mejores herramientas para tus proyectos.</p>
+        <a href="/productos" class="btn btn-warning fw-bold px-5 py-3 rounded-pill shadow">IR A LA TIENDA</a>
+    </div>
+
+    <div class="alert alert-light border-warning border-start border-5 rounded-4 p-4 mt-5">
+        <div class="d-flex align-items-center">
+            <div class="bg-warning bg-opacity-10 p-3 rounded-circle me-4">
+                <i class="bi bi-info-circle text-warning fs-3"></i>
+            </div>
+            <div>
+                <h5 class="fw-bold mb-1">¿Necesitas ayuda con un pedido?</h5>
+                <p class="text-muted mb-0 small">Si tienes problemas con una entrega o quieres solicitar una devolución por un producto defectuoso, contáctanos desde la sección de soporte. Nuestro equipo está disponible 24/7.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .order-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 40px; /* Aumentado el margen */
+        transition: transform 0.2s, shadow 0.2s;
+        background: white;
+        display: block; /* Asegurar que sea bloque */
+        width: 100%;
+        clear: both;
+    }
+    .order-card:hover {
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+    }
+    .order-header {
+        background-color: #f0f2f5;
+        padding: 15px 25px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .order-body {
+        padding: 25px;
+    }
+    .product-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .product-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .product-img-container {
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #eee;
+    }
+    .product-img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .order-info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    .order-info-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #707070;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+    .order-info-value {
+        font-weight: 600;
+        color: #333;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        const container = document.getElementById('orders-container');
+        const emptyState = document.getElementById('empty-history');
+        const orderCountLabel = document.getElementById('order-count');
+
+        if (!currentUser || !currentUser.id) {
+            emptyState.classList.remove('d-none');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/ventas/cliente/' + currentUser.id);
+            const data = await res.json();
+            
+            if (!data.success || !data.ventas || data.ventas.length === 0) {
+                emptyState.classList.remove('d-none');
+                return;
+            }
+
+            const sales = data.ventas;
+            orderCountLabel.innerText = sales.length;
+
+            sales.forEach(sale => {
+                const orderCard = document.createElement('div');
+                orderCard.className = 'order-card shadow-sm p-4';
+                
+                let productsHtml = '';
+                
+                (sale.items || []).forEach((item) => {
+                    const price = parseFloat(item.precio_unitario || 0);
+                    const dateObj = new Date(sale.fecha_compra);
+                    
+                    productsHtml += `
+                        <div class="product-row align-items-start mb-4">
+                            <!-- IMAGEN GRANDE A LA IZQUIERDA -->
+                            <div class="product-img-container shadow-sm me-4" style="width: 220px; height: 220px; flex-shrink: 0;">
+                                <img src="${item.img || '/img/default_product.png'}" alt="${item.producto_nombre}">
+                            </div>
+
+                            <!-- TODA LA INFORMACIÓN A LA DERECHA (CON BOTÓN CENTRADO VERTICALMENTE) -->
+                            <div class="flex-grow-1 d-flex position-relative" style="min-height: 220px;">
+                                
+                                <!-- Columna de Datos (Izquierda de la info) -->
+                                <div class="d-flex flex-column flex-grow-1">
+                                    <!-- 1. Título y 2. Cantidad -->
+                                    <div class="mb-3">
+                                        <h3 class="fw-bold mb-1 text-dark" style="font-size: 1.75rem;">${item.producto_nombre || 'Producto'}</h3>
+                                        <p class="text-muted mb-0 fs-5">Cantidad: <span class="fw-bold text-dark">${item.cantidad}</span></p>
+                                    </div>
+
+                                    <!-- 3. Fecha, 4. Monto y 5. Orden -->
+                                    <div class="d-flex flex-column gap-2 mb-4">
+                                        <div class="order-info-item">
+                                            <span class="order-info-label">FECHA DE COMPRA</span>
+                                            <span class="order-info-value text-muted">${dateObj.toLocaleDateString()}</span>
+                                        </div>
+                                        <div class="order-info-item">
+                                            <span class="order-info-label">MONTO DEL PEDIDO</span>
+                                            <span class="order-info-value text-primary fs-5 fw-bold">S/ ${parseFloat(sale.total_venta).toFixed(2)}</span>
+                                        </div>
+                                        <div class="order-info-item">
+                                            <span class="order-info-label">ORDEN DE PAGO</span>
+                                            <span class="order-info-value small">${sale.codigo_boleta}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- 6. Botón de Comprar de nuevo -->
+                                    <div class="mt-auto">
+                                        <a href="/producto/${item.producto_id}" class="btn btn-warning fw-bold px-5 py-2 rounded-3 shadow-sm border-0">Comprar de nuevo</a>
+                                    </div>
+                                </div>
+
+                                <!-- Botón de Boleta (CENTRADO VERTICALMENTE A LA DERECHA) -->
+                                <div class="d-flex flex-column justify-content-center align-items-center ps-4 border-start border-light ms-3" style="width: 200px;">
+                                    <a href="/boleta/${sale.codigo_boleta.replace('ORD-', '')}" class="btn btn-outline-primary fw-bold px-3 py-3 rounded-3 shadow-sm w-100 mb-2" style="font-size: 14px; border-width: 2px;">
+                                        <i class="bi bi-file-earmark-pdf-fill fs-4 d-block mb-1"></i> VER BOLETA
+                                    </a>
+                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill" style="font-size: 11px;">${sale.estado_pedido}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                orderCard.innerHTML = productsHtml;
+                container.appendChild(orderCard);
+            });
+        } catch(e) {
+            console.error(e);
+            emptyState.classList.remove('d-none');
+        }
+    });
+</script>
+
+<%- include('footer') %>

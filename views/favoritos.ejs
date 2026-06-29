@@ -1,0 +1,92 @@
+<%- include('header') %>
+
+<main class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-heart-fill me-2 text-danger"></i>Mis Favoritos</h2>
+        <span class="text-muted" id="fav-count-text">Tienes 0 productos guardados</span>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-4 g-4" id="favorites-container">
+        <!-- Cargando... -->
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 p-4 bg-light rounded-4 text-center">
+        <h5 class="fw-bold">¿Buscas algo más?</h5>
+        <p class="text-muted">Explora nuestras categorías y encuentra las mejores herramientas para tu proyecto.</p>
+        <a href="/" class="btn btn-warning fw-bold px-4">Ir a la Tienda</a>
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        renderFavorites();
+    });
+
+    function renderFavorites() {
+        const container = document.getElementById('favorites-container');
+        const countText = document.getElementById('fav-count-text');
+        
+        // Obtener favoritos de localStorage
+        const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        
+        countText.innerText = `Tienes ${favorites.length} producto${favorites.length !== 1 ? 's' : ''} guardado${favorites.length !== 1 ? 's' : ''}`;
+
+        if (favorites.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-heartbreak display-1 text-muted opacity-25"></i>
+                    <h4 class="mt-3 fw-bold text-muted">Aún no tienes favoritos</h4>
+                    <p class="text-muted">Guarda los productos que más te gusten para verlos después.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        favorites.forEach((product, index) => {
+            container.innerHTML += `
+                <div class="col fade-in">
+                    <div class="card h-100 product-card hover-effect">
+                        <div class="product-img-wrapper">
+                            <a href="/producto/${product.id}">
+                                <img src="${product.img}" alt="${product.name}">
+                            </a>
+                            <button class="btn btn-danger position-absolute top-0 end-0 m-2 rounded-circle shadow-sm" onclick="removeFromFavs(${product.id})">
+                                <i class="bi bi-heart-fill"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <small class="text-muted">${product.category}</small>
+                            <a href="/producto/${product.id}" class="text-decoration-none text-dark">
+                                <h5 class="card-title fw-bold small">${product.name}</h5>
+                            </a>
+                            <p class="card-text text-warning fw-bold">S/ ${product.price.toFixed(2)}</p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 pb-3">
+                            <button class="btn btn-dark w-100 fw-bold btn-sm" onclick="addToCart(${product.id})">
+                                <i class="bi bi-cart-plus me-2"></i>Mover al carrito
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function removeFromFavs(productId) {
+        let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        favorites = favorites.filter(p => p.id !== productId);
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        
+        // Actualizar UI
+        renderFavorites();
+        if (typeof updateWishlistUI === 'function') updateWishlistUI();
+    }
+</script>
+
+<%- include('footer') %>

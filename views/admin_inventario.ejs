@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Inventario - Ferretería Palacios</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .admin-sidebar { width: 250px; height: 100vh; position: fixed; background: #212529; color: white; transition: all 0.3s; z-index: 1000; }
+        .admin-content { margin-left: 250px; padding: 30px; transition: all 0.3s; min-height: 100vh; }
+        .nav-link-admin { color: rgba(255,255,255,0.7); padding: 15px 25px; display: block; text-decoration: none; transition: all 0.2s; }
+        .nav-link-admin:hover, .nav-link-admin.active { color: #ffc107; background: rgba(255,193,7,0.1); border-left: 4px solid #ffc107; }
+        .card { border: none; border-radius: 15px; }
+        @media (max-width: 768px) { .admin-sidebar { margin-left: -250px; } .admin-content { margin-left: 0; } }
+        
+        /* Contenedor de previsualización de imagen en modales */
+        .image-preview-container {
+            width: 100%;
+            height: 100%;
+            min-height: 250px;
+            max-height: 350px;
+            background-color: #f1f3f5;
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 10px;
+        }
+        .image-preview-container img {
+            max-width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="/img/logo_ferreteria.png">
+</head>
+<body>
+
+<div class="admin-sidebar">
+    <%- include('admin_sidebar') %>
+</div>
+
+<main class="admin-content">
+    <div class="container-fluid">
+        <!-- Header del Panel -->
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h2 class="fw-bold text-dark"><i class="bi bi-box-seam me-3 text-warning"></i>Gestión de Inventario</h2>
+                <p class="text-muted mb-0">Control total de stock, precios base y cálculos de IGV.</p>
+            </div>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-warning fw-bold shadow-sm px-4 py-2 me-3" data-bs-toggle="modal" data-bs-target="#modalNuevo">
+                    <i class="bi bi-plus-lg me-2"></i>Añadir Producto
+                </button>
+                <div class="dropdown">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=ffc107&color=212529" class="rounded-circle shadow-sm cursor-pointer" width="45" data-bs-toggle="dropdown">
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">Imagen</th>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Precio (Inc. IGV)</th>
+                            <th>Stock</th>
+                            <th id="audit-header" class="d-none">Creado por</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-body">
+                        <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Añadir Producto -->
+<div class="modal fade" id="modalNuevo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header bg-warning text-dark border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Registrar Nuevo Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formNuevoProducto">
+                    <div class="row g-4">
+                        <!-- Columna Izquierda: Imagen (Vista previa) -->
+                        <div class="col-md-5 d-flex flex-column align-items-center justify-content-center border-end">
+                            <span class="fw-bold small mb-2 text-secondary">Vista Previa de Imagen</span>
+                            <div class="image-preview-container">
+                                <img id="new-prod-preview" src="/img/default_product.png" alt="Vista previa">
+                            </div>
+                            <small class="text-muted text-center mt-2">Se cargará automáticamente al ingresar una URL de imagen válida.</small>
+                        </div>
+                        
+                        <!-- Columna Derecha: Formulario de Datos -->
+                        <div class="col-md-7">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Nombre del Producto</label>
+                                <input type="text" class="form-control" id="prod-name" placeholder="Ej. Taladro Percutor 20V" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small">Categoría</label>
+                                    <select class="form-select" id="prod-cat">
+                                        <!-- Carga dinámica -->
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small">Stock Inicial</label>
+                                    <input type="number" class="form-control" id="prod-stock" value="1" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Marca</label>
+                                <input type="text" class="form-control" id="prod-marca" placeholder="Ej. Stanley, Bosch, etc.">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-primary">Precio Base (S/)</label>
+                                    <input type="number" class="form-control border-primary" id="prod-price-base" step="0.01" placeholder="0.00" required oninput="calcularPrecioFinal('nuevo')">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-success">Precio Final (Inc. IGV)</label>
+                                    <input type="number" class="form-control bg-light fw-bold" id="prod-price-final" step="0.01" readonly>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Descripción Detallada</label>
+                                <textarea class="form-control" id="prod-desc" rows="3" placeholder="Descripción técnica..."></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small">Imagen (URL)</label>
+                                <input type="url" class="form-control" id="prod-img" placeholder="https://...">
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100 fw-bold py-3 rounded-3 shadow-sm">GUARDAR EN INVENTARIO</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Producto -->
+<div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header bg-dark text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2 text-warning"></i>Editar Producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formEditarProducto">
+                    <input type="hidden" id="edit-prod-id">
+                    <div class="row g-4">
+                        <!-- Columna Izquierda: Imagen (Vista previa) -->
+                        <div class="col-md-5 d-flex flex-column align-items-center justify-content-center border-end">
+                            <span class="fw-bold small mb-2 text-secondary">Vista Previa de Imagen</span>
+                            <div class="image-preview-container">
+                                <img id="edit-prod-preview" src="/img/default_product.png" alt="Vista previa">
+                            </div>
+                            <small class="text-muted text-center mt-2">Se cargará automáticamente al ingresar una URL de imagen válida.</small>
+                        </div>
+                        
+                        <!-- Columna Derecha: Formulario de Datos -->
+                        <div class="col-md-7">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Nombre del Producto</label>
+                                <input type="text" class="form-control" id="edit-prod-name" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small">Categoría</label>
+                                    <select class="form-select" id="edit-prod-cat">
+                                        <!-- Carga dinámica -->
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small">Stock</label>
+                                    <input type="number" class="form-control" id="edit-prod-stock" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Marca</label>
+                                <input type="text" class="form-control" id="edit-prod-marca" placeholder="Ej. Stanley, Bosch, etc.">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-primary">Precio Base (S/)</label>
+                                    <input type="number" class="form-control border-primary" id="edit-prod-price-base" step="0.01" required oninput="calcularPrecioFinal('edit')">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold small text-success">Precio Final (Inc. IGV)</label>
+                                    <input type="number" class="form-control bg-light fw-bold" id="edit-prod-price-final" step="0.01" readonly>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small">Descripción Detallada</label>
+                                <textarea class="form-control" id="edit-prod-desc" rows="3" placeholder="Descripción técnica..."></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small">Imagen (URL)</label>
+                                <input type="url" class="form-control" id="edit-prod-img" placeholder="https://...">
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100 fw-bold py-3 rounded-3 shadow-sm text-dark">GUARDAR CAMBIOS</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let productosGlobal = [];
+
+    async function cargarCategorias() {
+        try {
+            const res = await fetch('/api/categorias');
+            const data = await res.json();
+            if(data.success) {
+                let options = '';
+                data.categories.forEach(c => {
+                    options += `<option value="${c.id}">${c.nombre}</option>`;
+                });
+                document.getElementById('prod-cat').innerHTML = options;
+                document.getElementById('edit-prod-cat').innerHTML = options;
+            }
+        } catch(e) { console.error('Error cargando categorias', e); }
+    }
+
+    async function renderInventory() {
+        const tbody = document.getElementById('inventory-body');
+        const auditHeader = document.getElementById('audit-header');
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5">Cargando inventario... <div class="spinner-border spinner-border-sm text-warning ms-2"></div></td></tr>';
+        
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        const canSeeAudit = currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Supervisor' || currentUser.role === 'admin' || currentUser.role === 'Administrador');
+        if (canSeeAudit && auditHeader) auditHeader.classList.remove('d-none');
+
+        try {
+            const res = await fetch('/api/productos');
+            const data = await res.json();
+            if(data.success) {
+                productosGlobal = data.products;
+                tbody.innerHTML = '';
+                if(productosGlobal.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${canSeeAudit ? 7 : 6}" class="text-center py-5 text-muted">No hay productos en el inventario.</td></tr>`;
+                    return;
+                }
+
+                productosGlobal.forEach(p => {
+                    const price = parseFloat(p.precio_final) || 0;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="ps-4">
+                                <img src="${p.imagen_url || '/img/default_product.png'}" class="rounded-3 shadow-sm" width="50" height="50" style="object-fit: cover;" onerror="this.src='/img/default_product.png'">
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">${p.nombre}</div>
+                                <div class="text-warning small fw-bold">${p.marca || 'Sin Marca'}</div>
+                                <small class="text-muted small">ID: #${p.id}</small>
+                            </td>
+                            <td><span class="badge bg-secondary bg-opacity-10 text-secondary px-3">${p.category_name}</span></td>
+                            <td class="fw-bold text-dark">S/ ${price.toFixed(2)}</td>
+                            <td>
+                                <span class="badge ${p.stock < 5 ? 'bg-danger' : 'bg-success'} bg-opacity-10 ${p.stock < 5 ? 'text-danger' : 'text-success'} px-3">
+                                    ${p.stock} u.
+                                </span>
+                            </td>
+                            ${canSeeAudit ? `
+                            <td>
+                                <span class="badge bg-light text-dark border small fw-normal">
+                                    <i class="bi bi-person-check me-1"></i>${p.updated_by_name || 'Admin'}
+                                </span>
+                            </td>
+                            ` : ''}
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditModal(${p.id})" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                ${currentUser && (currentUser.role === 'Admin' || currentUser.role === 'admin' || currentUser.role === 'Administrador') ? `
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        } catch(error) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">Error de conexión con la base de datos local.</td></tr>`;
+        }
+    }
+
+    function calcularPrecioFinal(type) {
+        if(type === 'nuevo') {
+            const base = parseFloat(document.getElementById('prod-price-base').value) || 0;
+            document.getElementById('prod-price-final').value = (base * 1.18).toFixed(2);
+        } else {
+            const base = parseFloat(document.getElementById('edit-prod-price-base').value) || 0;
+            document.getElementById('edit-prod-price-final').value = (base * 1.18).toFixed(2);
+        }
+    }
+
+    function openEditModal(id) {
+        const p = productosGlobal.find(prod => prod.id == id);
+        if(!p) return;
+
+        document.getElementById('edit-prod-id').value = p.id;
+        document.getElementById('edit-prod-name').value = p.nombre;
+        document.getElementById('edit-prod-cat').value = p.categoria_id;
+        document.getElementById('edit-prod-stock').value = p.stock;
+        document.getElementById('edit-prod-price-base').value = parseFloat(p.precio_base).toFixed(2);
+        document.getElementById('edit-prod-price-final').value = parseFloat(p.precio_final).toFixed(2);
+        document.getElementById('edit-prod-desc').value = p.descripcion || '';
+        document.getElementById('edit-prod-marca').value = p.marca || '';
+        document.getElementById('edit-prod-img').value = p.imagen_url || '';
+
+        // Vista previa al cargar el modal
+        const previewImg = document.getElementById('edit-prod-preview');
+        previewImg.src = p.imagen_url || '/img/default_product.png';
+
+        const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
+        modal.show();
+    }
+
+    // Helper para actualizar imagen de forma segura y optimizada (con debounce y validación de URL)
+    function optimizarPreviewImagen(inputElement, previewElement) {
+        let timeoutId = null;
+
+        const updatePreview = () => {
+            const url = inputElement.value.trim();
+            // Validar que comience con http://, https://, / o que esté vacía para evitar solicitudes basura relativas
+            if (url === '' || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) {
+                previewElement.src = url || '/img/default_product.png';
+            } else {
+                previewElement.src = '/img/default_product.png';
+            }
+        };
+
+        if (inputElement && previewElement) {
+            inputElement.addEventListener('input', () => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(updatePreview, 400); // Debounce de 400ms
+            });
+
+            inputElement.addEventListener('change', () => {
+                clearTimeout(timeoutId);
+                updatePreview(); // Actualizar inmediatamente al perder el foco o presionar Enter
+            });
+
+            previewElement.addEventListener('error', () => {
+                previewElement.src = '/img/default_product.png';
+            });
+        }
+    }
+
+    optimizarPreviewImagen(document.getElementById('edit-prod-img'), document.getElementById('edit-prod-preview'));
+    optimizarPreviewImagen(document.getElementById('prod-img'), document.getElementById('new-prod-preview'));
+
+    document.getElementById('formNuevoProducto').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        const btn = document.querySelector('#formNuevoProducto button[type="submit"]');
+        btn.disabled = true; btn.innerText = 'GUARDANDO...';
+
+        const payload = {
+            nombre: document.getElementById('prod-name').value,
+            categoria_id: parseInt(document.getElementById('prod-cat').value),
+            stock: parseInt(document.getElementById('prod-stock').value),
+            precio_base: parseFloat(document.getElementById('prod-price-base').value),
+            precio_final: parseFloat(document.getElementById('prod-price-final').value),
+            descripcion: document.getElementById('prod-desc').value,
+            marca: document.getElementById('prod-marca').value,
+            imagen_url: document.getElementById('prod-img').value || '',
+            modificado_por: (currentUser && currentUser.id) ? (typeof currentUser.id === 'string' ? parseInt(currentUser.id.split('-').pop()) : currentUser.id) : 1
+        };
+        
+        try {
+            await fetch('/api/productos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevo'));
+            modal.hide();
+            renderInventory();
+            document.getElementById('formNuevoProducto').reset();
+            document.getElementById('new-prod-preview').src = '/img/default_product.png'; // Resetear preview
+        } catch(err) { 
+            alert('Error al guardar el producto en la nube'); 
+        } finally {
+            btn.disabled = false; btn.innerText = 'GUARDAR EN INVENTARIO';
+        }
+    });
+
+    document.getElementById('formEditarProducto').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-prod-id').value;
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        const btn = document.querySelector('#formEditarProducto button[type="submit"]');
+        btn.disabled = true; btn.innerText = 'ACTUALIZANDO...';
+
+        const payload = {
+            nombre: document.getElementById('edit-prod-name').value,
+            categoria_id: parseInt(document.getElementById('edit-prod-cat').value),
+            stock: parseInt(document.getElementById('edit-prod-stock').value),
+            precio_base: parseFloat(document.getElementById('edit-prod-price-base').value),
+            precio_final: parseFloat(document.getElementById('edit-prod-price-final').value),
+            descripcion: document.getElementById('edit-prod-desc').value,
+            marca: document.getElementById('edit-prod-marca').value,
+            imagen_url: document.getElementById('edit-prod-img').value,
+            modificado_por: (currentUser && currentUser.id) ? (typeof currentUser.id === 'string' ? parseInt(currentUser.id.split('-').pop()) : currentUser.id) : 1
+        };
+        
+        try {
+            await fetch('/api/productos/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditar'));
+            modal.hide();
+            renderInventory();
+        } catch(err) { 
+            alert('Error al actualizar el producto en la nube'); 
+        } finally {
+            btn.disabled = false; btn.innerText = 'GUARDAR CAMBIOS';
+        }
+    });
+
+    async function deleteProduct(id) {
+        const result = await Swal.fire({
+            title: '¿Eliminar producto?',
+            text: '¿Estás seguro de eliminar este producto DEFINITIVAMENTE de la base de datos?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        });
+
+        if(result.isConfirmed) {
+            try {
+                await fetch('/api/productos/' + id, { method: 'DELETE' });
+                Swal.fire({
+                    title: '¡Eliminado!',
+                    text: 'El producto ha sido borrado con éxito.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                renderInventory();
+            } catch(err) { 
+                Swal.fire('Error', 'No se pudo eliminar el producto.', 'error');
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role === 'Cliente' || currentUser.role === 'client') {
+            window.location.href = '/login';
+            return;
+        }
+        cargarCategorias().then(() => {
+            renderInventory();
+        });
+    });
+</script>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

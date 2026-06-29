@@ -1,0 +1,158 @@
+<%- include('header') %>
+
+<main class="container mt-5">
+    <div id="product-detail-container">
+        <!-- El contenido se cargará dinámicamente -->
+        <div class="text-center py-5" id="detail-loader">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    const productId = "<%= productId %>";
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        renderProductDetail();
+    });
+
+    async function renderProductDetail() {
+        const container = document.getElementById('product-detail-container');
+        let product = null;
+
+        try {
+            const res = await fetch('/api/productos');
+            const data = await res.json();
+            if (data.success) {
+                const p = data.products.find(item => item.id == productId);
+                if (p) {
+                    product = {
+                        id: p.id,
+                        name: p.nombre,
+                        brand: p.marca || '',
+                        category: p.category_name,
+                        price: parseFloat(p.precio_final),
+                        stock: p.stock,
+                        img: p.imagen_url || '/img/default_product.png',
+                        description: p.descripcion || ''
+                    };
+                }
+            }
+        } catch (e) { console.error('Error fetching details', e); }
+
+        if (!product) {
+            container.innerHTML = `
+                <div class="alert alert-danger">Producto no encontrado. <a href="/">Volver al inicio</a></div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="row g-5">
+                <!-- Imagen del Producto -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden p-3 bg-white">
+                        <img src="${product.img}" class="img-fluid rounded-4 shadow-sm" alt="${product.name}" style="width: 100%; height: 500px; object-fit: cover;">
+                    </div>
+                </div>
+
+                <!-- Info del Producto -->
+                <div class="col-md-6">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/" class="text-warning text-decoration-none">Inicio</a></li>
+                            <li class="breadcrumb-item"><a href="/productos/${product.category.toLowerCase()}" class="text-warning text-decoration-none">${product.category}</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">${product.name}</li>
+                        </ol>
+                    </nav>
+
+                    ${product.brand ? `<span class="badge bg-dark text-white px-3 py-2 rounded-pill mb-2">${product.brand}</span>` : ''}
+                    <h1 class="display-5 fw-bold mb-3">${product.name}</h1>
+                    
+                    <h2 class="text-warning fw-bold mb-4 display-6">S/ ${product.price.toFixed(2)}</h2>
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-2">Descripción:</h6>
+                        <p class="text-muted">${product.description || 'Este producto no cuenta con una descripción detallada por el momento.'}</p>
+                    </div>
+
+                    <div class="row g-3 mb-5">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-muted uppercase">Cantidad:</label>
+                            <div class="quantity-selector ${product.stock <= 0 ? 'opacity-50' : ''}">
+                                <button class="btn" type="button" id="btn-minus" onclick="updateQuantity(-1, ${product.stock})" ${product.stock <= 0 ? 'disabled' : ''}>
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
+                                <input type="number" id="qty-input" value="${product.stock > 0 ? 1 : 0}" min="1" max="${product.stock}" readonly>
+                                <button class="btn" type="button" id="btn-plus" onclick="updateQuantity(1, ${product.stock})" ${product.stock <= 0 ? 'disabled' : ''}>
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted mt-2 d-block" id="stock-hint">${product.stock} unidades disponibles</small>
+                        </div>
+                        <div class="col-md-7 d-flex align-items-end">
+                            ${product.stock > 0 ? `
+                                <button class="btn btn-warning w-100 fw-bold py-3 shadow-sm border-0 rounded-4" onclick="addToCart(${product.id}, parseInt(document.getElementById('qty-input').value))">
+                                    <i class="bi bi-cart-plus me-2 fs-5"></i>AÑADIR AL CARRITO
+                                </button>
+                            ` : `
+                                <div class="alert alert-danger w-100 mb-0 py-3 text-center fw-bold rounded-4 border-0">
+                                    <i class="bi bi-exclamation-octagon me-2"></i>PRODUCTO SIN STOCK
+                                </div>
+                            `}
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button class="btn btn-dark w-100 fw-bold py-3 rounded-4 shadow" ${product.stock <= 0 ? 'disabled' : ''} onclick="buyNow(${product.id})">
+                                COMPRAR AHORA
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-4 border-top pt-4">
+                        <div class="text-center">
+                            <i class="bi bi-truck fs-3 text-warning"></i>
+                            <p class="mb-0 small fw-bold">Envío Gratis</p>
+                        </div>
+                        <div class="text-center">
+                            <i class="bi bi-shield-check fs-3 text-warning"></i>
+                            <p class="mb-0 small fw-bold">Garantía 2 años</p>
+                        </div>
+                        <div class="text-center">
+                            <i class="bi bi-arrow-repeat fs-3 text-warning"></i>
+                            <p class="mb-0 small fw-bold">Devolución fácil</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function updateQuantity(delta, maxStock) {
+        const input = document.getElementById('qty-input');
+        const btnMinus = document.getElementById('btn-minus');
+        const btnPlus = document.getElementById('btn-plus');
+        let current = parseInt(input.value);
+        
+        let nextValue = current + delta;
+        
+        if (nextValue >= 1 && nextValue <= maxStock) {
+            input.value = nextValue;
+            current = nextValue;
+        }
+
+        // Bloquear botones visualmente si llegan al límite
+        btnMinus.disabled = (current <= 1);
+        btnPlus.disabled = (current >= maxStock);
+    }
+
+    function buyNow(productId) {
+        const input = document.getElementById('qty-input');
+        const qty = parseInt(input ? input.value : 1);
+        addToCart(productId, qty);
+        window.location.href = '/carrito';
+    }
+</script>
+
+<%- include('footer') %>
